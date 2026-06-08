@@ -1,0 +1,28 @@
+node_modules
+.next
+out
+dist
+.env*
+*.log
+.DS_Store
+
+# generated review / preview files
+review-export/
+review-export-current/
+review-main-page-20260512/
+review-main-page-latest/
+file-preview-current/
+pdf-extract/
+*.zip
+*.pdf
+*.html
+
+# optional: allow env template to be committed
+!.env.local.example
+
+# old / renamed Next build folders
+.next*/
+.next-*/
+
+# TypeScript build info
+*.tsbuildinfo

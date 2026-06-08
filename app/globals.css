@@ -1,0 +1,213 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Cormorant", "Georgia", "Times New Roman", serif;
+  --font-script: "Snell Roundhand", "Bickham Script Pro", "Zapfino", "Georgia", serif;
+  --font-sans: "Inter", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+  --background: #fbf7ef;
+  --foreground: #2f2923;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+img,
+video,
+iframe {
+  max-width: 100%;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  position: relative;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  background: #fbf4e9;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  text-rendering: geometricPrecision;
+}
+
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.34;
+  background:
+    linear-gradient(90deg, rgba(255, 253, 247, 0.56), rgba(255, 253, 247, 0.12) 48%, rgba(244, 231, 210, 0.48)),
+    radial-gradient(ellipse at 50% 112%, rgba(108, 83, 46, 0.14), transparent 31rem);
+}
+
+body::after {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+  background-image:
+    linear-gradient(rgba(47, 41, 35, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(47, 41, 35, 0.025) 1px, transparent 1px);
+  background-position: 0 0, 0 0;
+  background-repeat: repeat, repeat;
+  background-size: 4px 4px, 9px 9px;
+}
+
+body > * {
+  position: relative;
+  z-index: 2;
+}
+
+main.bg-espresso {
+  background-color: transparent !important;
+}
+
+section[class*="bg-[linear-gradient"] {
+  background-image: none !important;
+  background-color: transparent !important;
+}
+
+.bg-radial-candle {
+  background-image: none !important;
+  background-color: transparent !important;
+}
+
+.site-background-depth {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #fbf4e9;
+}
+
+.site-background-image {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  object-position: center center;
+  opacity: 0.4;
+  filter: blur(2px) saturate(0.92) contrast(1.02);
+  transform: scale(1.012);
+}
+
+.site-background-depth::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 253, 247, 0.42), rgba(255, 253, 247, 0.08) 48%, rgba(255, 253, 247, 0.38)),
+    linear-gradient(180deg, rgba(255, 253, 247, 0.22), transparent 42rem, rgba(242, 229, 207, 0.24));
+}
+
+::selection {
+  background: rgba(216, 197, 149, 0.55);
+  color: #2f2923;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .scene-edge {
+    position: relative;
+  }
+
+  .scene-edge::before,
+  .scene-edge::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 9rem;
+    z-index: 1;
+  }
+
+  .scene-edge::before {
+    top: 0;
+    background: linear-gradient(180deg, rgba(255, 253, 247, 0.96), transparent);
+  }
+
+  .scene-edge::after {
+    bottom: 0;
+    background: linear-gradient(0deg, rgba(251, 247, 239, 0.96), transparent);
+  }
+
+  .candleline {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(167, 127, 63, 0.42),
+      rgba(255, 250, 243, 0.78),
+      rgba(216, 197, 149, 0.28),
+      transparent
+    );
+  }
+
+  .elegant-surface {
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 250, 243, 0.16)),
+      linear-gradient(180deg, rgba(255, 253, 247, 0.25), rgba(242, 232, 216, 0.18));
+    backdrop-filter: blur(16px) saturate(1.05);
+    box-shadow:
+      0 34px 92px rgba(91, 67, 38, 0.16),
+      0 12px 30px rgba(132, 104, 60, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.48),
+      inset 0 -1px 0 rgba(124, 98, 58, 0.08);
+  }
+
+  .photo-depth {
+    box-shadow:
+      0 44px 120px rgba(91, 67, 38, 0.23),
+      0 16px 42px rgba(148, 116, 65, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  }
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: sepia(1) saturate(0.5);
+  opacity: 0.72;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

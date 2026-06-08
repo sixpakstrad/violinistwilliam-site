@@ -1,0 +1,23 @@
+.env*
+.next
+.next-*
+node_modules
+out
+dist
+*.log
+.DS_Store
+
+# Local preview/review artifacts created during design review.
+file-preview-current
+review-export
+review-export-current
+review-main-page-*
+pdf-extract
+William-Samorey-Website-Visual-Review.html
+William-Samorey-Website-Visual-Review.pdf
+William-Samorey-main-page-review-*.zip
+HANDOFF.md
+PREVIEW-INSTRUCTIONS.txt
+preview-static-server.mjs
+create-file-preview.mjs
+start-preview.command

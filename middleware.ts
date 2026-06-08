@@ -13,6 +13,15 @@ function getApprovedAdminEmails() {
   );
 }
 
+function getApprovedAdminUserIds() {
+  return new Set(
+    (process.env.ADMIN_USER_IDS ?? "")
+      .split(",")
+      .map((userId) => userId.trim())
+      .filter(Boolean),
+  );
+}
+
 function getEmailFromClaims(sessionClaims: unknown) {
   if (!sessionClaims || typeof sessionClaims !== "object") {
     return "";
@@ -46,6 +55,12 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (!authObject.userId) {
     return authObject.redirectToSignIn({ returnBackUrl: req.url });
+  }
+
+  const approvedUserIds = getApprovedAdminUserIds();
+
+  if (approvedUserIds.has(authObject.userId)) {
+    return;
   }
 
   const email = getEmailFromClaims(authObject.sessionClaims);

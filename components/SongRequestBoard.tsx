@@ -14,10 +14,6 @@ import {
 } from "@/data/songRequests";
 import { songRequestSettings } from "@/data/songRequestSettings";
 
-type SongRequestBoardProps = {
-  requirePassword?: boolean;
-};
-
 function getExternalHref(value: string) {
   const trimmedValue = value.trim();
 
@@ -32,9 +28,7 @@ function getExternalHref(value: string) {
   return "";
 }
 
-export function SongRequestBoard({
-  requirePassword = false,
-}: SongRequestBoardProps) {
+export function SongRequestBoard() {
   const [requests, setRequests] = useState<StoredSongRequest[]>([]);
   const [filter, setFilter] = useState<RequestStatus | "active" | "all">(
     "active",
@@ -123,27 +117,6 @@ export function SongRequestBoard({
   const currentEventCount = requests.filter(
     (request) => request.eventName === currentEvent,
   ).length;
-
-  if (requirePassword) {
-    return (
-      <section className="px-5 pb-24 sm:px-8 md:px-12 md:pb-32 lg:px-16">
-        <div className="mx-auto max-w-xl">
-          <div className="elegant-surface border border-ivory/10 p-6 sm:p-8">
-            <p className="mb-4 text-xs uppercase tracking-[0.32em] text-gold/80">
-              Private Access
-            </p>
-            <h2 className="font-display text-4xl leading-tight text-ivory sm:text-5xl">
-              Request dashboard
-            </h2>
-            <p className="mt-4 text-sm leading-7 text-ivory-muted">
-              This page is protected by the secure admin login before the
-              dashboard loads.
-            </p>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section className="px-5 pb-24 sm:px-8 md:px-12 md:pb-32 lg:px-16">

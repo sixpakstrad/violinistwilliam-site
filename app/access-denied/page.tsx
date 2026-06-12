@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
+import { AdminSignOutButton } from "@/components/AdminSignOutButton";
 
 export const metadata = {
   title: "Access Denied | William Samorey",
@@ -7,6 +8,7 @@ export const metadata = {
 
 export default async function AccessDeniedPage() {
   const user = await currentUser();
+  const isSignedIn = Boolean(user);
   const userId = user?.id ?? "Not available";
   const email =
     user?.primaryEmailAddress?.emailAddress ??
@@ -23,8 +25,9 @@ export default async function AccessDeniedPage() {
           Signed in, but not approved for admin access.
         </h1>
         <p className="mt-5 text-base leading-8 text-ivory-muted">
-          Clerk recognized the sign-in, but this account is not on the approved
-          admin list for William Samorey / Winspiration Studio LLC.
+          Clerk recognized the sign-in, but this account's Clerk user ID is not
+          on the approved admin list for William Samorey / Winspiration Studio
+          LLC.
         </p>
         <div className="mt-8 border border-ivory/10 bg-espresso/40 p-5 text-sm leading-7 text-ivory-muted">
           <p>
@@ -34,12 +37,16 @@ export default async function AccessDeniedPage() {
             <span className="text-ivory">Clerk user ID:</span> {userId}
           </p>
           <p className="mt-4">
-            For the deployed site, add the approved Clerk user ID to{" "}
-            <span className="font-mono text-ivory">ADMIN_USER_IDS</span> or add
-            the approved email to{" "}
-            <span className="font-mono text-ivory">ADMIN_EMAILS</span>.
+            For local development and Vercel, add this Clerk user ID to{" "}
+            <span className="font-mono text-ivory">ADMIN_USER_IDS</span>.
+            Email addresses are not used for final admin approval.
           </p>
         </div>
+        {isSignedIn ? (
+          <div className="mt-8">
+            <AdminSignOutButton email={email} />
+          </div>
+        ) : null}
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/admin/sign-in"

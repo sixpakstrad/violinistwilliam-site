@@ -1,11 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import {
-  getApprovedAdminEmails,
-  getApprovedAdminUserIds,
-  getEmailFromClaims,
-} from "@/lib/adminAllowlist";
+import { isApprovedAdminUserId } from "@/lib/adminAllowlist";
 
 const isPrivatePageRoute = createRouteMatcher(["/admin(.*)", "/requests(.*)"]);
 const isAdminApiRoute = createRouteMatcher(["/api/admin(.*)"]);
@@ -29,22 +25,15 @@ export default clerkMiddleware(async (auth, req) => {
     return authObject.redirectToSignIn({ returnBackUrl: req.url });
   }
 
-  const approvedUserIds = getApprovedAdminUserIds();
-
-  if (approvedUserIds.has(authObject.userId)) {
+  if (isApprovedAdminUserId(authObject.userId)) {
     return;
   }
 
-  const email = getEmailFromClaims(authObject.sessionClaims);
-  const approvedEmails = getApprovedAdminEmails();
-
-  if (!email || !approvedEmails.has(email)) {
-    if (isAdminApiRoute(req)) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
-    }
-
-    return NextResponse.redirect(new URL("/access-denied", req.url));
+  if (isAdminApiRoute(req)) {
+    return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
+
+  return NextResponse.redirect(new URL("/access-denied", req.url));
 });
 
 export const config = {

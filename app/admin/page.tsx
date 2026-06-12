@@ -26,7 +26,7 @@ export default async function AdminPage() {
           <AdminSignOutButton email={access.email} />
         </div>
       </div>
-      <AdminDashboard clerkProtected />
+      <AdminDashboard />
     </main>
   );
 }

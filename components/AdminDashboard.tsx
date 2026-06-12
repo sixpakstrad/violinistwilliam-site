@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type FormEvent,
   type ReactNode,
 } from "react";
 import { SongRequestBoard } from "@/components/SongRequestBoard";
@@ -2106,14 +2105,7 @@ function readTabFromHash(): AdminTab | null {
   return tabs.some((tab) => tab.id === hash) ? (hash as AdminTab) : null;
 }
 
-type AdminDashboardProps = {
-  clerkProtected?: boolean;
-};
-
-export function AdminDashboard({ clerkProtected = false }: AdminDashboardProps) {
-  const [password, setPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [isAuthorized, setIsAuthorized] = useState(clerkProtected);
+export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<AdminTab>("requests");
   const [songs, setSongs] = useState<RepertoireSong[]>(repertoireSongs);
   const [songQuery, setSongQuery] = useState("");
@@ -2152,7 +2144,6 @@ export function AdminDashboard({ clerkProtected = false }: AdminDashboardProps) 
   const [saveMessage, setSaveMessage] = useState("");
 
   useEffect(() => {
-    setIsAuthorized(clerkProtected);
     setSongs(readStoredSongs());
     setStories(readStoredStories());
     const storedMainPageContent = readStoredValue(
@@ -2232,7 +2223,7 @@ export function AdminDashboard({ clerkProtected = false }: AdminDashboardProps) 
 
     window.addEventListener("hashchange", syncTabToHash);
     return () => window.removeEventListener("hashchange", syncTabToHash);
-  }, [clerkProtected]);
+  }, []);
 
   const filteredSongs = useMemo(() => {
     const normalizedQuery = songQuery.trim().toLowerCase();
@@ -2334,24 +2325,6 @@ export function AdminDashboard({ clerkProtected = false }: AdminDashboardProps) 
         </div>
       </div>
     );
-  };
-
-  const submitPassword = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setPassword("");
-    setPasswordError("Please use the secure admin sign-in page.");
-  };
-
-  const logout = () => {
-    if (clerkProtected) {
-      setSaveMessage("Use the secure sign-out button above to log out.");
-      return;
-    }
-
-    setIsAuthorized(false);
-    setPassword("");
-    setPasswordError("");
-    setSaveMessage("");
   };
 
   const showSaved = (message: string) => {
@@ -3314,48 +3287,6 @@ export function AdminDashboard({ clerkProtected = false }: AdminDashboardProps) 
     showSaved(`${pageLabel} SEO saved in this browser.`);
   };
 
-  if (!isAuthorized) {
-    return (
-      <section className="px-5 pb-24 sm:px-8 md:px-12 md:pb-32 lg:px-16">
-        <form
-          onSubmit={submitPassword}
-          className="elegant-surface mx-auto max-w-xl border border-ivory/10 p-6 sm:p-8"
-        >
-          <p className="mb-4 text-xs uppercase tracking-[0.32em] text-gold/80">
-            Private Admin
-          </p>
-          <h2 className="font-display text-4xl leading-tight text-ivory sm:text-5xl">
-            Unlock editing tools
-          </h2>
-          <p className="mt-4 text-sm leading-7 text-ivory-muted">
-            This area controls requests, song list edits, pricing, and website
-            details.
-          </p>
-          <label className="mt-7 block">
-            <span className="mb-3 block text-xs uppercase tracking-[0.22em] text-gold/80">
-              Password
-            </span>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="min-h-12 w-full border border-ivory/10 bg-espresso/45 px-4 text-ivory outline-none transition focus:border-gold/70"
-            />
-          </label>
-          {passwordError ? (
-            <p className="mt-3 text-sm text-gold">{passwordError}</p>
-          ) : null}
-          <button
-            type="submit"
-            className="mt-6 inline-flex min-h-12 items-center justify-center bg-ivory px-6 text-sm font-medium uppercase tracking-[0.2em] text-espresso transition hover:bg-gold"
-          >
-            Unlock Admin
-          </button>
-        </form>
-      </section>
-    );
-  }
-
   return (
     <section className="px-5 pb-24 sm:px-8 md:px-12 md:pb-32 lg:px-16">
       <div className="mx-auto max-w-7xl">
@@ -3387,19 +3318,10 @@ export function AdminDashboard({ clerkProtected = false }: AdminDashboardProps) 
             >
               Export Song PDF
             </button>
-            {!clerkProtected ? (
-              <button
-                type="button"
-                onClick={logout}
-                className="border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory"
-              >
-                Log Out
-              </button>
-            ) : null}
           </div>
         </div>
 
-        {activeTab === "requests" ? <SongRequestBoard requirePassword={false} /> : null}
+        {activeTab === "requests" ? <SongRequestBoard /> : null}
 
         {activeTab === "songs" ? (
           <div className="space-y-6">

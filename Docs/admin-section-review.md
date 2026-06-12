@@ -95,18 +95,11 @@ If the signed-in Clerk user ID is in the approved list, access is allowed immedi
 
 This is the strongest and most reliable approval method because email claims can sometimes be unavailable or shaped differently.
 
-### 5. Approved Admin Emails
+### 5. No Custom Password Gate Or Email Fallback
 
-If the user ID is not approved, middleware falls back to email approval using:
+The admin approval step now uses Clerk user IDs only. `ADMIN_EMAILS` and `ADMIN_EMAIL` are not part of active admin authorization.
 
-```text
-ADMIN_EMAILS
-ADMIN_EMAIL
-```
-
-The middleware tries to read the email from Clerk session claims.
-
-Potential issue: if the expected email is not present in `sessionClaims`, a valid user may be redirected to `/access-denied`. In that case, approving by Clerk user ID is the safest fix.
+The old dashboard password form has been removed. The only login screen for `/admin` should be Clerk's prebuilt `/admin/sign-in` screen. After Clerk finishes email/password authentication and any enabled Clerk MFA, the app checks `ADMIN_USER_IDS`.
 
 ### 6. Server-Side Admin Page Check
 
@@ -138,7 +131,7 @@ The admin sign-in page uses Clerk's prebuilt component:
 />
 ```
 
-The admin sign-up page uses:
+The admin sign-up page uses Clerk's prebuilt component:
 
 ```tsx
 <SignUp
@@ -154,13 +147,15 @@ This is preferred over custom Clerk login code because Clerk's prebuilt componen
 
 There is no custom Clerk sign-in flow currently in use. A search of the code did not find custom calls such as `useSignIn()`, `signIn.create()`, `attemptFirstFactor()`, or `setActive()` in the admin sign-in flow.
 
+Public sign-up should be disabled in the Clerk Dashboard if only pre-created admin accounts should exist. The app still keeps `/admin/sign-up` public so Clerk can render its own prebuilt screen if sign-up remains enabled.
+
 Current observed admin sign-in issue:
 
 ```text
 ClerkJS: Response: needs_client_trust not supported yet.
 ```
 
-This error appears after submitting the Clerk sign-in form. Because the app uses Clerk's official prebuilt sign-in component, this may require a Clerk dashboard setting adjustment for Client Trust/Bot Protection/device verification, allowed development domains, or an updated Clerk configuration rather than a custom form-code fix.
+This error appears after submitting the Clerk sign-in form. This is not the usual Clerk MFA state. `needs_second_factor` means MFA is required; `needs_client_trust` points instead to Client Trust/device verification/Bot Protection behavior. Because the app uses Clerk's official prebuilt sign-in component, this is most likely caused by Clerk package support, Client Trust settings, allowed localhost origins, or a dashboard configuration that the current ClerkJS flow does not support.
 
 ## Required Environment Variables
 
@@ -173,18 +168,16 @@ NEXT_PUBLIC_CLERK_SIGN_IN_URL=/admin/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/admin/sign-up
 NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/admin
 NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/admin
-ADMIN_EMAILS=winspirationstudio@gmail.com,william@violinistwilliam.com
 ADMIN_USER_IDS=
 ```
 
-Optional legacy/single-value variables also supported by the code:
+Optional single-value variable also supported by the code:
 
 ```text
-ADMIN_EMAIL=
 ADMIN_CLERK_USER_ID=
 ```
 
-Recommended: use `ADMIN_USER_IDS` once the real Clerk user ID is known.
+Use `ADMIN_USER_IDS` once the real Clerk user ID is known. Email-based approval is intentionally not used.
 
 ## Clerk Dashboard Items To Check
 
@@ -198,9 +191,13 @@ In the Clerk dashboard, verify:
   - `http://localhost:3000/admin/sign-in`
   - `https://violinistwilliam.com/admin`
   - `https://violinistwilliam.com/admin/sign-in`
-- Email/password sign-in is enabled if that is the desired login method.
-- MFA and Client Trust/Bot Protection settings are configured intentionally.
-- If `needs_client_trust` appears during local testing, verify whether Client Trust/Bot Protection requires additional setup for localhost or should be temporarily relaxed for development.
+- Email/password sign-in is enabled.
+- MFA is enabled in Clerk, with SMS code or email code preferred if available for the project.
+- Authenticator app/TOTP is not required unless you intentionally want to require it.
+- Backup codes are enabled if Clerk offers them for the selected MFA setup.
+- Client Trust/Bot Protection/device verification settings are reviewed because the observed error is `needs_client_trust`, not the normal `needs_second_factor` MFA state.
+- If `needs_client_trust` appears during local testing, verify whether Client Trust/Bot Protection requires additional setup for localhost, whether localhost is an allowed origin, or whether the setting should be relaxed for development.
+- Public sign-up is disabled if the site should only allow invited/pre-created admin accounts.
 - The approved admin account has a known Clerk user ID and that ID is added to `ADMIN_USER_IDS`.
 
 ## Known Login Risk Areas
@@ -218,10 +215,9 @@ These are the first things to review if admin login is still failing:
 3. Redirect URLs not allowed in Clerk dashboard.
    - Clerk can reject or loop login attempts if localhost or production URLs are not configured.
 
-4. Approved email not found in session claims.
-   - The middleware tries to read email from `sessionClaims`.
-   - If Clerk does not expose the email in the expected shape, email-based approval can fail.
-   - Use `ADMIN_USER_IDS` to avoid this problem.
+4. Missing Clerk user ID in `ADMIN_USER_IDS`.
+   - `/access-denied` shows the signed-in account's Clerk user ID.
+   - Add that value to `ADMIN_USER_IDS` locally and in Vercel.
 
 5. Legacy `/sign-in` routes.
    - There are both `/admin/sign-in` and `/sign-in` pages.
@@ -593,5 +589,4 @@ NEXT_PUBLIC_CLERK_SIGN_UP_URL
 NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL
 NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL
 ADMIN_USER_IDS
-ADMIN_EMAILS
 ```

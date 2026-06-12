@@ -1,9 +1,6 @@
 import { currentUser } from "@clerk/nextjs/server";
 
-import {
-  getApprovedAdminEmails,
-  getApprovedAdminUserIds,
-} from "@/lib/adminAllowlist";
+import { isApprovedAdminUserId } from "@/lib/adminAllowlist";
 
 export type AdminAccess = {
   email: string;
@@ -18,18 +15,13 @@ export async function getAdminAccess(): Promise<AdminAccess> {
     user?.primaryEmailAddress?.emailAddress?.toLowerCase() ??
     user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() ??
     "";
-  const approvedUserIds = getApprovedAdminUserIds();
-  const approvedEmails = getApprovedAdminEmails();
 
   return {
     email,
     userId,
-    isAllowed: Boolean(
-      (userId && approvedUserIds.has(userId)) ||
-        (email && approvedEmails.has(email)),
-    ),
+    isAllowed: isApprovedAdminUserId(userId),
   };
 }
 
 // Production note:
-// ADMIN_EMAILS or ADMIN_USER_IDS must be present in the deployed environment.
+// ADMIN_USER_IDS must be present in the deployed environment.

@@ -89,7 +89,7 @@ export function StoriesJournal() {
             {publishedStories.length > 0 ? (
               <StoriesAccordion stories={publishedStories} />
             ) : (
-              <div className="border border-[#ff9a56]/20 bg-[#fffaf1]/[0.82] p-8 text-center text-[#4f4940] shadow-[0_30px_90px_rgba(91,67,38,0.16)]">
+              <div className="border border-[#b85f2e]/20 bg-[#fffaf1]/[0.82] p-8 text-center text-[#4f4940] shadow-[0_30px_90px_rgba(91,67,38,0.16)]">
                 No published stories are available yet.
               </div>
             )}

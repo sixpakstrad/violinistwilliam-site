@@ -42,7 +42,11 @@ export function WeddingPackagesAvailability() {
           </div>
         </Reveal>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+        <p className="mt-10 text-xs uppercase tracking-[0.24em] text-gold">
+          Price are per performer.
+        </p>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
           {defaultRateGuides.map((guide, index) => (
             <Reveal key={guide.title} delay={index * 0.06}>
               <article className="elegant-surface h-full border border-ivory/10 p-6">

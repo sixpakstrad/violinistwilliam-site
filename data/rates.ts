@@ -41,7 +41,7 @@ export const defaultAddOns = [
   "1 hour of performance: $200",
   "Cocktail hour / reception, 1 hour: $200",
   "Dinner, 90 minutes: $300",
-  "Mileage: $0.65 / mile",
+  "Mileage: $0.70 / mile",
   "Custom song arrangement: $30 per song",
   "Rehearsal attendance: $200",
 ];

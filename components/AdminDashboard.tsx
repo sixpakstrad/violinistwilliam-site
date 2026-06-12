@@ -5089,7 +5089,7 @@ export function AdminDashboard({ clerkProtected = false }: AdminDashboardProps) 
                   onChange={(event) =>
                     updateMainHero("titleColor", event.target.value)
                   }
-                  placeholder="Title color, e.g. #ff9a56"
+                  placeholder="Title color, e.g. #b85f2e"
                   className="min-h-12 border border-ivory/10 bg-espresso/45 px-4 text-ivory outline-none focus:border-gold/70"
                 />
                 <input
@@ -6606,7 +6606,7 @@ export function AdminDashboard({ clerkProtected = false }: AdminDashboardProps) 
 
             <SettingsAccordion
               title="Page Hero Typography"
-              description="Adjust the visible title and subtitle size or color for standard page hero areas. Use values like 72px, 4.5rem, or #ff9a56."
+              description="Adjust the visible title and subtitle size or color for standard page hero areas. Use values like 72px, 4.5rem, or #b85f2e."
             >
               <div className="grid gap-4">
                 {pageHeroContent

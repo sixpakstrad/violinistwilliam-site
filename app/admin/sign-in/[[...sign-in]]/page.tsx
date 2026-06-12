@@ -1,10 +1,10 @@
-import { SignUp } from "@clerk/nextjs";
+import { SignIn } from "@clerk/nextjs";
 
 export const metadata = {
-  title: "Admin Sign Up | William Samorey",
+  title: "Admin Sign In | William Samorey",
 };
 
-export default function SignUpPage() {
+export default function AdminSignInPage() {
   return (
     <main className="min-h-screen bg-espresso px-5 py-28 text-ivory sm:px-8 lg:px-16">
       <section className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
@@ -13,18 +13,18 @@ export default function SignUpPage() {
             Private Admin
           </p>
           <h1 className="mt-5 font-display text-5xl leading-tight sm:text-6xl">
-            Create an approved admin account.
+            Sign in to manage the site.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-8 text-ivory-muted">
-            Only email addresses listed in the admin allowlist can open the
-            editing dashboard.
+            Admin access is protected by Clerk and limited to approved accounts.
+            Two-factor authentication can be enabled from the Clerk dashboard.
           </p>
         </div>
         <div className="elegant-surface border border-ivory/10 p-4">
-          <SignUp
+          <SignIn
             routing="path"
-            path="/sign-up"
-            signInUrl="/admin/sign-in"
+            path="/admin/sign-in"
+            signUpUrl="/admin/sign-up"
             fallbackRedirectUrl="/admin"
           />
         </div>

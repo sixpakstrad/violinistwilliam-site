@@ -21,8 +21,8 @@ rm -rf .next
 
 echo ""
 echo "Starting the live website preview. Keep this window open."
-echo "Open http://localhost:$PORT_NUMBER"
-(sleep 3 && open "http://localhost:$PORT_NUMBER") &
+echo "Open http://127.0.0.1:$PORT_NUMBER"
+(sleep 4 && open "http://127.0.0.1:$PORT_NUMBER") &
 "$NODE" node_modules/next/dist/bin/next dev -H 127.0.0.1 -p "$PORT_NUMBER"
 
 echo ""

@@ -8,6 +8,10 @@ export default function robots(): MetadataRoute.Robots {
       disallow: [
         "/admin",
         "/admin/",
+        "/admin/sign-in",
+        "/admin/sign-in/",
+        "/admin/sign-up",
+        "/admin/sign-up/",
         "/requests",
         "/requests/",
         "/sign-in",

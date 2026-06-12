@@ -26,7 +26,7 @@ export function StoriesAccordion({ stories }: StoriesAccordionProps) {
             key={story.id}
             className={`overflow-hidden border-b transition duration-300 last:border-b-0 ${
               isOpen
-                ? "border-[#ff9a56]/[0.36] bg-[#fff7ea]/[0.86]"
+                ? "border-[#b85f2e]/[0.36] bg-[#fff7ea]/[0.86]"
                 : "border-[#8b6a37]/[0.12] bg-[#fffaf1]/50 hover:bg-[#fff7ea]/[0.78]"
             }`}
           >
@@ -96,14 +96,14 @@ export function StoriesAccordion({ stories }: StoriesAccordionProps) {
                       </div>
                     ) : null}
 
-                    <div className="max-w-4xl space-y-5 border-l border-[#ff9a56]/[0.26] pl-5 text-base leading-8 text-[#3f3932] sm:pl-7 sm:text-lg">
+                    <div className="max-w-4xl space-y-5 border-l border-[#b85f2e]/[0.26] pl-5 text-base leading-8 text-[#3f3932] sm:pl-7 sm:text-lg">
                       {story.body.map((paragraph) => (
                         <p key={paragraph}>{paragraph}</p>
                       ))}
                       <button
                         type="button"
                         onClick={() => setOpenStoryId("")}
-                        className="mt-3 inline-flex min-h-11 items-center justify-center border border-[#ff9a56]/45 bg-[#ff9a56]/[0.08] px-5 text-[0.68rem] uppercase tracking-[0.2em] text-[#3f3932] transition hover:border-[#ff9a56] hover:bg-[#ff9a56]/[0.16] hover:text-[#082123]"
+                        className="mt-3 inline-flex min-h-11 items-center justify-center border border-[#b85f2e]/45 bg-[#b85f2e]/[0.08] px-5 text-[0.68rem] uppercase tracking-[0.2em] text-[#3f3932] transition hover:border-[#b85f2e] hover:bg-[#b85f2e]/[0.16] hover:text-[#082123]"
                       >
                         Close Story
                       </button>

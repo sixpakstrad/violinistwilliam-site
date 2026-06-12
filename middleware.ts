@@ -3,10 +3,14 @@ import { NextResponse } from "next/server";
 
 const isPrivatePageRoute = createRouteMatcher(["/admin(.*)", "/requests(.*)"]);
 const isAdminApiRoute = createRouteMatcher(["/api/admin(.*)"]);
+const isAdminAuthRoute = createRouteMatcher([
+  "/admin/sign-in(.*)",
+  "/admin/sign-up(.*)",
+]);
 
 function getApprovedAdminEmails() {
   return new Set(
-    (process.env.ADMIN_EMAILS ?? "")
+    `${process.env.ADMIN_EMAILS ?? ""},${process.env.ADMIN_EMAIL ?? ""}`
       .split(",")
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean),
@@ -15,7 +19,7 @@ function getApprovedAdminEmails() {
 
 function getApprovedAdminUserIds() {
   return new Set(
-    (process.env.ADMIN_USER_IDS ?? "")
+    `${process.env.ADMIN_USER_IDS ?? ""},${process.env.ADMIN_CLERK_USER_ID ?? ""}`
       .split(",")
       .map((userId) => userId.trim())
       .filter(Boolean),
@@ -47,6 +51,10 @@ function getEmailFromClaims(sessionClaims: unknown) {
 }
 
 export default clerkMiddleware(async (auth, req) => {
+  if (isAdminAuthRoute(req)) {
+    return;
+  }
+
   if (!isPrivatePageRoute(req) && !isAdminApiRoute(req)) {
     return;
   }

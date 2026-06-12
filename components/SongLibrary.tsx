@@ -13,6 +13,9 @@ import { TipModal } from "@/components/TipModal";
 type GenreFilter = "All" | (typeof repertoireGenres)[number];
 type NoteFilter = "All" | "Wedding" | "Funeral" | "Party" | "Favorite";
 type StoredRepertoireSong = RepertoireSong & { recommended?: boolean };
+type SongsPerPage = 25 | 50 | 100;
+
+const songsPerPageOptions: SongsPerPage[] = [25, 50, 100];
 
 function getSongGenres(song: RepertoireSong): string[] {
   const genres = Array.isArray(song.genres)
@@ -43,6 +46,60 @@ function normalizeSong(song: StoredRepertoireSong): RepertoireSong {
   };
 }
 
+function getSongKey(song: RepertoireSong, index: number) {
+  return `${song.title}-${song.artist}-${song.source}-${index}`;
+}
+
+function getSongTags(song: RepertoireSong) {
+  return [
+    song.weddingRecommended ? "Wedding" : "",
+    song.funeralRecommended ? "Funeral" : "",
+    song.partyRecommended ? "Party" : "",
+    song.favoriteRecommended ? "Favorite" : "",
+    song.extraCharge ? "Fee required" : "",
+  ].filter(Boolean);
+}
+
+function getPaginationItems(currentPage: number, totalPages: number) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages = new Set([1, totalPages, currentPage]);
+
+  if (currentPage > 1) {
+    pages.add(currentPage - 1);
+  }
+
+  if (currentPage < totalPages) {
+    pages.add(currentPage + 1);
+  }
+
+  if (currentPage <= 3) {
+    pages.add(2);
+    pages.add(3);
+    pages.add(4);
+  }
+
+  if (currentPage >= totalPages - 2) {
+    pages.add(totalPages - 1);
+    pages.add(totalPages - 2);
+    pages.add(totalPages - 3);
+  }
+
+  return Array.from(pages)
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b)
+    .reduce<(number | "ellipsis")[]>((items, page, index, sortedPages) => {
+      if (index > 0 && page - sortedPages[index - 1] > 1) {
+        items.push("ellipsis");
+      }
+
+      items.push(page);
+      return items;
+    }, []);
+}
+
 export function SongLibrary() {
   const [query, setQuery] = useState("");
   const [genre, setGenre] = useState<GenreFilter>("All");
@@ -50,6 +107,9 @@ export function SongLibrary() {
   const [selectedSong, setSelectedSong] = useState<RepertoireSong | null>(null);
   const [showTip, setShowTip] = useState(false);
   const [songs, setSongs] = useState<RepertoireSong[]>(repertoireSongs);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [songsPerPage, setSongsPerPage] = useState<SongsPerPage>(50);
+  const [expandedMobileSong, setExpandedMobileSong] = useState("");
   const [studentInstrumentFundUrl, setStudentInstrumentFundUrl] = useState<string>(
     songRequestSettings.studentInstrumentFundUrl,
   );
@@ -122,6 +182,132 @@ export function SongLibrary() {
       return matchesQuery && matchesGenre && matchesNotes;
     });
   }, [genre, noteFilter, query, songs]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setExpandedMobileSong("");
+  }, [genre, noteFilter, query, songsPerPage]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSongs.length / songsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStart = filteredSongs.length
+    ? (safeCurrentPage - 1) * songsPerPage
+    : 0;
+  const pageEnd = Math.min(pageStart + songsPerPage, filteredSongs.length);
+  const paginatedSongs = filteredSongs.slice(pageStart, pageEnd);
+  const hasActiveFilters = Boolean(query.trim()) || genre !== "All" || noteFilter !== "All";
+  const resultLabel = hasActiveFilters ? "matching songs" : "songs";
+
+  useEffect(() => {
+    if (currentPage !== safeCurrentPage) {
+      setCurrentPage(safeCurrentPage);
+    }
+  }, [currentPage, safeCurrentPage]);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.min(Math.max(page, 1), totalPages));
+    setExpandedMobileSong("");
+  };
+
+  const PaginationControls = ({ placement }: { placement: "top" | "bottom" }) => (
+    <div
+      className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${
+        placement === "bottom" ? "mt-6" : ""
+      }`}
+    >
+      <div className="text-sm text-[#4f463d]">
+        {filteredSongs.length > 0 ? (
+          <p>
+            Showing{" "}
+            <span className="font-medium text-gold">
+              {pageStart + 1}–{pageEnd}
+            </span>{" "}
+            of{" "}
+            <span className="font-medium text-gold">{filteredSongs.length}</span>{" "}
+            {resultLabel}
+          </p>
+        ) : (
+          <p>
+            Showing <span className="font-medium text-gold">0</span> of{" "}
+            <span className="font-medium text-gold">{songs.length}</span> songs
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+        <label className="flex items-center justify-between gap-3 text-[0.68rem] uppercase tracking-[0.16em] text-[#5b5046] sm:justify-start">
+          Songs per page
+          <select
+            value={songsPerPage}
+            onChange={(event) =>
+              setSongsPerPage(Number(event.target.value) as SongsPerPage)
+            }
+            className="min-h-10 border border-ivory/10 bg-espresso/55 px-3 text-sm normal-case tracking-normal text-ivory outline-none transition focus:border-gold/70"
+          >
+            {songsPerPageOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="flex items-center justify-between gap-2 sm:justify-end">
+          <button
+            type="button"
+            onClick={() => goToPage(safeCurrentPage - 1)}
+            disabled={safeCurrentPage === 1 || filteredSongs.length === 0}
+            className="inline-flex min-h-11 flex-1 items-center justify-center border border-gold/45 px-4 text-xs font-medium uppercase tracking-[0.14em] text-[#4f463d] transition hover:border-gold hover:bg-gold/10 disabled:cursor-not-allowed disabled:border-smoke-brown/25 disabled:text-smoke-brown/55 sm:flex-none"
+          >
+            Previous
+          </button>
+
+          <span className="min-w-[7.5rem] text-center text-xs uppercase tracking-[0.16em] text-[#5b5046] md:hidden">
+            Page {safeCurrentPage} of {totalPages}
+          </span>
+
+          <div className="hidden items-center gap-1 md:flex">
+            {getPaginationItems(safeCurrentPage, totalPages).map((item, index) => {
+              if (item === "ellipsis") {
+                return (
+                  <span
+                    key={`ellipsis-${index}`}
+                    className="px-2 text-sm text-[#6a5f53]"
+                  >
+                    …
+                  </span>
+                );
+              }
+
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => goToPage(item)}
+                  className={`inline-flex h-10 min-w-10 items-center justify-center border px-3 text-sm transition ${
+                    item === safeCurrentPage
+                      ? "border-gold bg-gold text-espresso"
+                      : "border-ivory/10 bg-espresso/35 text-[#4f463d] hover:border-gold/65 hover:bg-gold/10"
+                  }`}
+                >
+                  {item}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => goToPage(safeCurrentPage + 1)}
+            disabled={safeCurrentPage === totalPages || filteredSongs.length === 0}
+            className="inline-flex min-h-11 flex-1 items-center justify-center border border-gold/45 px-4 text-xs font-medium uppercase tracking-[0.14em] text-[#4f463d] transition hover:border-gold hover:bg-gold/10 disabled:cursor-not-allowed disabled:border-smoke-brown/25 disabled:text-smoke-brown/55 sm:flex-none"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <section
@@ -234,15 +420,11 @@ export function SongLibrary() {
         </Reveal>
 
         <Reveal delay={0.16} className="mt-8">
-          <div className="mb-4 flex flex-col gap-2 text-sm text-[#5b5046] sm:flex-row sm:items-center sm:justify-between">
-            <p>
-              Showing{" "}
-              <span className="text-gold">{filteredSongs.length}</span> of{" "}
-              <span className="text-gold">{songs.length}</span> songs
-            </p>
+          <div className="mb-4">
+            <PaginationControls placement="top" />
           </div>
 
-          <div className="overflow-x-auto border border-ivory/10 shadow-[0_24px_70px_rgba(47,41,35,0.16)]">
+          <div className="hidden border border-ivory/10 shadow-[0_24px_70px_rgba(47,41,35,0.16)] md:block">
             <table className="w-full min-w-[980px] border-collapse text-left">
               <thead className="bg-charcoal-brown text-[0.68rem] uppercase tracking-[0.22em] text-gold">
                 <tr>
@@ -255,12 +437,12 @@ export function SongLibrary() {
                 </tr>
               </thead>
               <tbody>
-                {filteredSongs.map((song, index) => {
+                {paginatedSongs.map((song, index) => {
                   const liveRequestUnavailable = song.extraCharge;
 
                   return (
                     <tr
-                      key={`${song.title}-${song.artist}-${song.source}-${index}`}
+                      key={getSongKey(song, pageStart + index)}
                       className={
                         liveRequestUnavailable
                           ? "bg-smoke-brown/20 opacity-60"
@@ -341,11 +523,113 @@ export function SongLibrary() {
             </table>
           </div>
 
+          <div className="grid gap-3 md:hidden">
+            {paginatedSongs.map((song, index) => {
+              const songKey = getSongKey(song, pageStart + index);
+              const isExpanded = expandedMobileSong === songKey;
+              const liveRequestUnavailable = song.extraCharge;
+              const visibleTags = getSongTags(song).slice(0, 3);
+
+              return (
+                <article
+                  key={songKey}
+                  className={`border border-ivory/10 p-4 shadow-[0_18px_45px_rgba(47,41,35,0.12)] ${
+                    liveRequestUnavailable
+                      ? "bg-smoke-brown/20 opacity-70"
+                      : "bg-espresso/55"
+                  }`}
+                >
+                  <div className="flex gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-display text-2xl leading-tight text-ivory">
+                        {song.title}
+                      </h3>
+                      {song.artist ? (
+                        <p className="mt-1 text-sm leading-6 text-[#5b5046]">
+                          {song.artist}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="shrink-0">
+                      {liveRequestUnavailable ? (
+                        <span className="inline-flex min-h-10 items-center justify-center border border-smoke-brown/30 bg-smoke-brown/10 px-3 text-[0.58rem] font-medium uppercase tracking-[0.12em] text-[#5b5046]">
+                          Fee required
+                        </span>
+                      ) : requestsEnabled ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSong(song)}
+                          className="inline-flex min-h-10 items-center justify-center border border-gold/55 px-3 text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#4f463d] transition hover:border-gold hover:bg-gold/10"
+                        >
+                          Request
+                        </button>
+                      ) : (
+                        <span className="inline-flex min-h-10 items-center justify-center text-[0.68rem] uppercase tracking-[0.14em] text-[#6a5f53]">
+                          Paused
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {visibleTags.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {visibleTags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="border border-gold/55 bg-smoke-brown/10 px-2 py-1 text-[0.62rem] uppercase tracking-[0.14em] text-[#5b5046]"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    onClick={() => setExpandedMobileSong(isExpanded ? "" : songKey)}
+                    className="mt-4 inline-flex min-h-10 w-full items-center justify-between border border-ivory/10 bg-ivory/[0.035] px-3 text-xs font-medium uppercase tracking-[0.16em] text-[#4f463d]"
+                  >
+                    Details
+                    <span aria-hidden="true">{isExpanded ? "−" : "+"}</span>
+                  </button>
+
+                  {isExpanded ? (
+                    <div className="mt-4 grid gap-3 border-t border-ivory/10 pt-4 text-sm leading-6 text-[#5b5046]">
+                      <p>
+                        <span className="text-xs uppercase tracking-[0.16em] text-gold">
+                          Movie / Show
+                        </span>
+                        <br />
+                        {song.source || "—"}
+                      </p>
+                      <p>
+                        <span className="text-xs uppercase tracking-[0.16em] text-gold">
+                          Genre
+                        </span>
+                        <br />
+                        {getSongGenres(song).join(", ")}
+                      </p>
+                      <p>
+                        <span className="text-xs uppercase tracking-[0.16em] text-gold">
+                          Category
+                        </span>
+                        <br />
+                        {getSongTags(song).join(", ") || "—"}
+                      </p>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+
           {filteredSongs.length === 0 ? (
             <div className="mt-8 border border-ivory/10 bg-ivory/[0.035] p-8 text-center text-ivory-muted">
-              No songs found for that search.
+              No songs found for that search or filter.
             </div>
           ) : null}
+
+          {filteredSongs.length > 0 ? <PaginationControls placement="bottom" /> : null}
         </Reveal>
       </div>
       <SongRequestModal

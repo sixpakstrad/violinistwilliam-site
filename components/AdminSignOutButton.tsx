@@ -17,7 +17,7 @@ export function AdminSignOutButton({ email }: AdminSignOutButtonProps) {
       </p>
       <button
         type="button"
-        onClick={() => signOut({ redirectUrl: "/sign-in" })}
+        onClick={() => signOut({ redirectUrl: "/admin/sign-in" })}
         className="border border-gold/40 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory transition hover:border-gold hover:bg-gold/15"
       >
         Sign Out

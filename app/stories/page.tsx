@@ -17,13 +17,13 @@ export default function StoriesPage() {
         <div className="absolute inset-x-0 bottom-0 -z-10 h-32 bg-[linear-gradient(180deg,transparent,#fbf4e9_92%)]" />
 
         <Reveal className="mx-auto max-w-7xl">
-          <p className="mb-5 text-xs uppercase tracking-[0.38em] text-[#ff9a56]">
+          <p className="mb-5 text-xs uppercase tracking-[0.38em] text-[#b85f2e]">
             Journal
           </p>
           <h1 className="max-w-3xl font-display text-6xl leading-none text-[#082123] text-balance drop-shadow-[0_18px_42px_rgba(91,67,38,0.12)] sm:text-7xl md:text-8xl">
             Will’s Stories
           </h1>
-          <div className="my-7 h-px w-24 bg-[#ff9a56]" />
+          <div className="my-7 h-px w-24 bg-[#b85f2e]" />
           <p className="max-w-xl text-lg leading-8 text-[#143638] sm:text-xl">
             Reflections from performances, teaching, repertoire, instruments,
             and the quiet work behind the music.

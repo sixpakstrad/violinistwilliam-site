@@ -4,7 +4,7 @@ export const metadata = {
   title: "Admin Sign Up | William Samorey",
 };
 
-export default function SignUpPage() {
+export default function AdminSignUpPage() {
   return (
     <main className="min-h-screen bg-espresso px-5 py-28 text-ivory sm:px-8 lg:px-16">
       <section className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
@@ -16,14 +16,13 @@ export default function SignUpPage() {
             Create an approved admin account.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-8 text-ivory-muted">
-            Only email addresses listed in the admin allowlist can open the
-            editing dashboard.
+            Only approved accounts can open the editing dashboard.
           </p>
         </div>
         <div className="elegant-surface border border-ivory/10 p-4">
           <SignUp
             routing="path"
-            path="/sign-up"
+            path="/admin/sign-up"
             signInUrl="/admin/sign-in"
             fallbackRedirectUrl="/admin"
           />

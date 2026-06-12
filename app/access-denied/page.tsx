@@ -20,7 +20,7 @@ export default function AccessDeniedPage() {
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            href="/sign-in"
+            href="/admin/sign-in"
             className="inline-flex min-h-12 items-center justify-center border border-gold/40 px-5 text-xs uppercase tracking-[0.18em] text-ivory transition hover:border-gold hover:bg-gold/15"
           >
             Try Another Account

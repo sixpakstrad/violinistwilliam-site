@@ -44,7 +44,7 @@ export function RepairCareSlideshow({
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(28,7,4,0.08),rgba(28,7,4,0.48)),radial-gradient(circle_at_65%_12%,rgba(246,181,126,0.2),transparent_22rem)]" />
       </div>
-      <figcaption className="absolute bottom-5 left-5 right-5 flex flex-col gap-2 border-t border-[#ff9a56]/45 pt-4 text-[0.68rem] uppercase tracking-[0.2em] text-[#fff4e8] sm:bottom-7 sm:left-7 sm:right-7 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pt-5 sm:text-xs sm:tracking-[0.28em]">
+      <figcaption className="absolute bottom-5 left-5 right-5 flex flex-col gap-2 border-t border-[#b85f2e]/45 pt-4 text-[0.68rem] uppercase tracking-[0.2em] text-[#fff4e8] sm:bottom-7 sm:left-7 sm:right-7 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pt-5 sm:text-xs sm:tracking-[0.28em]">
         <span>Bow & Instrument Care</span>
         <span>
           Detail {(activeIndex % slides.length) + 1} / {slides.length}

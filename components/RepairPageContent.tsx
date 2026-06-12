@@ -37,7 +37,7 @@ function ServiceList({ title, items }: { title?: string; items: string[] }) {
     <div className="relative overflow-hidden border border-[#f08a4b]/45 bg-[#2b0d08]/[0.46] p-5 shadow-[0_22px_70px_rgba(33,10,7,0.28)] backdrop-blur-[2px] sm:p-6">
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(115deg,rgba(112,36,24,0.12),transparent_42%)]" />
       {title ? (
-        <p className="mb-4 text-xs uppercase tracking-[0.26em] text-[#ff9a56]">
+        <p className="mb-4 text-xs uppercase tracking-[0.26em] text-[#b85f2e]">
           {title}
         </p>
       ) : null}
@@ -74,7 +74,7 @@ function ServiceSection({
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(115deg,rgba(138,48,32,0.14),transparent_34%),linear-gradient(180deg,rgba(255,217,180,0.035),transparent_28%)]" />
       <Reveal className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.74fr_1.26fr]">
         <div>
-          <p className="mb-4 text-xs uppercase tracking-[0.36em] text-[#ff9a56]">
+          <p className="mb-4 text-xs uppercase tracking-[0.36em] text-[#b85f2e]">
             {eyebrow}
           </p>
           <h2 className="font-display text-4xl leading-[1.03] text-[#f7eadc] text-balance sm:text-5xl md:text-6xl">
@@ -121,7 +121,7 @@ export function RepairPageContent() {
 
         <Reveal className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
           <div>
-            <p className="mb-4 text-xs uppercase tracking-[0.36em] text-[#ff9a56]">
+            <p className="mb-4 text-xs uppercase tracking-[0.36em] text-[#b85f2e]">
               {content.hero.eyebrow}
             </p>
             <h1
@@ -154,7 +154,7 @@ export function RepairPageContent() {
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 href="/contact?type=repair"
-                className="inline-flex min-h-12 w-full items-center justify-center bg-[#f7eadc] px-7 text-center text-sm font-medium uppercase tracking-[0.18em] text-[#2b1711] transition duration-300 hover:bg-[#ff9a56] sm:w-auto sm:tracking-[0.22em]"
+                className="inline-flex min-h-12 w-full items-center justify-center bg-[#f7eadc] px-7 text-center text-sm font-medium uppercase tracking-[0.18em] text-[#2b1711] transition duration-300 hover:bg-[#b85f2e] sm:w-auto sm:tracking-[0.22em]"
               >
                 {content.hero.ctaLabel}
               </Link>
@@ -167,7 +167,7 @@ export function RepairPageContent() {
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(115deg,rgba(214,130,88,0.11),transparent_42%),linear-gradient(180deg,rgba(255,214,176,0.035),transparent_32%)]" />
         <Reveal className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.55fr_1.45fr] lg:items-end">
           <div>
-            <p className="mb-4 text-xs uppercase tracking-[0.36em] text-[#ff9a56]">
+            <p className="mb-4 text-xs uppercase tracking-[0.36em] text-[#b85f2e]">
               {content.bench.eyebrow}
             </p>
             <h2 className="font-display text-4xl leading-[1.03] text-[#f7eadc] text-balance sm:text-5xl md:text-6xl">
@@ -188,7 +188,7 @@ export function RepairPageContent() {
             <div className="absolute inset-0 -z-10 bg-[linear-gradient(115deg,rgba(214,130,88,0.12),transparent_36%),linear-gradient(180deg,rgba(255,214,176,0.04),transparent_26%)]" />
             <Reveal className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.74fr_1.26fr]">
               <div>
-                <p className="mb-4 text-xs uppercase tracking-[0.36em] text-[#ff9a56]">
+                <p className="mb-4 text-xs uppercase tracking-[0.36em] text-[#b85f2e]">
                   {section.eyebrow}
                 </p>
                 <h2 className="font-display text-4xl leading-[1.03] text-[#f7eadc] text-balance sm:text-5xl md:text-6xl">
@@ -226,9 +226,9 @@ export function RepairPageContent() {
 
       <section className="relative z-10 overflow-hidden border-t border-[#f08a4b]/35 bg-[#210805]/[0.36] px-5 py-16 sm:px-8 md:px-12 md:py-20 lg:px-16">
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(255,214,176,0.04),transparent_30%)]" />
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ff9a56]/80 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#b85f2e]/80 to-transparent" />
         <Reveal className="mx-auto max-w-4xl text-center">
-          <p className="mb-4 text-xs uppercase tracking-[0.36em] text-[#ff9a56]">
+          <p className="mb-4 text-xs uppercase tracking-[0.36em] text-[#b85f2e]">
             {content.finalCta.eyebrow}
           </p>
           <h2 className="font-display text-4xl leading-[1.03] text-[#f7eadc] text-balance sm:text-5xl md:text-6xl">
@@ -239,7 +239,7 @@ export function RepairPageContent() {
           </p>
           <Link
             href="/contact?type=repair"
-            className="mt-7 inline-flex min-h-12 w-full items-center justify-center bg-[#f7eadc] px-7 text-center text-sm font-medium uppercase tracking-[0.18em] text-[#2b1711] transition duration-300 hover:bg-[#ff9a56] sm:w-auto sm:tracking-[0.22em]"
+            className="mt-7 inline-flex min-h-12 w-full items-center justify-center bg-[#f7eadc] px-7 text-center text-sm font-medium uppercase tracking-[0.18em] text-[#2b1711] transition duration-300 hover:bg-[#b85f2e] sm:w-auto sm:tracking-[0.22em]"
           >
             {content.finalCta.ctaLabel}
           </Link>

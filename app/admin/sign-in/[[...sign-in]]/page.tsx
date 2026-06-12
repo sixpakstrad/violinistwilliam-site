@@ -25,6 +25,7 @@ export default function AdminSignInPage() {
             routing="path"
             path="/admin/sign-in"
             signUpUrl="/admin/sign-up"
+            forceRedirectUrl="/admin"
             fallbackRedirectUrl="/admin"
           />
         </div>

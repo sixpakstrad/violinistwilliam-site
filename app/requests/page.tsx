@@ -1,7 +1,17 @@
+import { redirect } from "next/navigation";
 import { PageIntro } from "@/components/PageIntro";
 import { SongRequestBoard } from "@/components/SongRequestBoard";
+import { getAdminAccess } from "@/lib/adminAuth";
 
-export default function RequestsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function RequestsPage() {
+  const access = await getAdminAccess();
+
+  if (!access.isAllowed) {
+    redirect("/access-denied");
+  }
+
   return (
     <main className="min-h-screen bg-espresso text-ivory">
       <PageIntro

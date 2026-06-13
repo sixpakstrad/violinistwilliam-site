@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Reveal } from "@/components/Reveal";
-import { adminStorageKeys } from "@/data/adminContent";
-import { repertoireGenres, repertoireSongs } from "@/data/repertoire";
+import { repertoireGenres } from "@/data/repertoire";
 import type { RepertoireSong } from "@/data/repertoire";
 import { readRequestsEnabled } from "@/data/songRequests";
 import { songRequestSettings } from "@/data/songRequestSettings";
@@ -12,7 +11,13 @@ import { TipModal } from "@/components/TipModal";
 
 type GenreFilter = "All" | (typeof repertoireGenres)[number];
 type NoteFilter = "All" | "Wedding" | "Funeral" | "Party" | "Favorite";
-type StoredRepertoireSong = RepertoireSong & { recommended?: boolean };
+type StoredRepertoireSong = Partial<RepertoireSong> & {
+  recommended?: boolean;
+  wedding?: boolean;
+  funeral?: boolean;
+  party?: boolean;
+  request_fee?: boolean;
+};
 type SongsPerPage = 25 | 50 | 100;
 
 const songsPerPageOptions: SongsPerPage[] = [25, 50, 100];
@@ -26,23 +31,36 @@ function getSongGenres(song: RepertoireSong): string[] {
 }
 
 function normalizeSong(song: StoredRepertoireSong): RepertoireSong {
+  const category = song.category || song.source || "";
   const genres = Array.isArray(song.genres)
     ? song.genres.filter(Boolean)
-    : [song.genre || "Pop"];
+    : [song.genre || category || "Pop"];
+  const isFavorite = song.wills_favorite ?? song.favoriteRecommended ?? false;
+  const weddingRecommended =
+    song.weddingRecommended ?? song.recommended ?? song.wedding ?? false;
+  const funeralRecommended =
+    song.funeralRecommended ?? song.funeral ?? false;
+  const partyRecommended = song.partyRecommended ?? song.party ?? false;
+  const extraCharge = song.extraCharge ?? song.request_fee ?? false;
 
   return {
     ...song,
-    genre: genres[0] || song.genre || "Pop",
+    title: song.title || "Untitled Song",
+    artist: song.artist || "",
+    category,
+    source: song.source || category,
+    genre: genres[0] || song.genre || category || "Pop",
     genres,
     notes: song.notes || "",
     sheetMusic: song.sheetMusic || "",
     backingTrack: song.backingTrack || "",
     url: song.url || "",
-    weddingRecommended: song.weddingRecommended ?? song.recommended ?? false,
-    funeralRecommended: song.funeralRecommended ?? false,
-    partyRecommended: song.partyRecommended ?? false,
-    favoriteRecommended: song.favoriteRecommended ?? false,
-    extraCharge: song.extraCharge ?? false,
+    weddingRecommended,
+    funeralRecommended,
+    partyRecommended,
+    wills_favorite: isFavorite,
+    favoriteRecommended: isFavorite,
+    extraCharge,
   };
 }
 
@@ -106,7 +124,7 @@ export function SongLibrary() {
   const [noteFilter, setNoteFilter] = useState<NoteFilter>("All");
   const [selectedSong, setSelectedSong] = useState<RepertoireSong | null>(null);
   const [showTip, setShowTip] = useState(false);
-  const [songs, setSongs] = useState<RepertoireSong[]>(repertoireSongs);
+  const [songs, setSongs] = useState<RepertoireSong[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [songsPerPage, setSongsPerPage] = useState<SongsPerPage>(50);
   const [expandedMobileSong, setExpandedMobileSong] = useState("");
@@ -133,21 +151,35 @@ export function SongLibrary() {
   }, []);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(adminStorageKeys.songs);
-      if (raw) {
-        setSongs((JSON.parse(raw) as StoredRepertoireSong[]).map(normalizeSong));
-      }
+    let isMounted = true;
 
-      setStudentInstrumentFundUrl(
-        songRequestSettings.studentInstrumentFundUrl,
-      );
-      setShowStudentInstrumentFund(true);
-    } catch {
-      setSongs(repertoireSongs);
-      setStudentInstrumentFundUrl(songRequestSettings.studentInstrumentFundUrl);
-      setShowStudentInstrumentFund(true);
+    setStudentInstrumentFundUrl(songRequestSettings.studentInstrumentFundUrl);
+    setShowStudentInstrumentFund(true);
+
+    async function loadSupabaseSongs() {
+      try {
+        const response = await fetch("/api/songs", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`Song load failed with status ${response.status}`);
+        }
+
+        const data = (await response.json()) as {
+          songs?: StoredRepertoireSong[];
+        };
+
+        if (isMounted && Array.isArray(data.songs)) {
+          setSongs(data.songs.map(normalizeSong));
+        }
+      } catch (error) {
+        console.error("Unable to load public songs from Supabase:", error);
+      }
     }
+
+    loadSupabaseSongs();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filteredSongs = useMemo(() => {

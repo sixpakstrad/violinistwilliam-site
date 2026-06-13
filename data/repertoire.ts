@@ -1,6 +1,8 @@
 export type RepertoireSong = {
+  id?: string | number;
   title: string;
   artist: string;
+  category?: string;
   source: string;
   genre: string;
   genres?: string[];
@@ -8,11 +10,17 @@ export type RepertoireSong = {
   sheetMusic?: string;
   backingTrack?: string;
   url?: string;
+  sheet_music_location?: string;
+  backing_track_location?: string;
+  reference_url?: string;
   weddingRecommended: boolean;
   funeralRecommended: boolean;
   partyRecommended?: boolean;
+  wills_favorite?: boolean;
   favoriteRecommended?: boolean;
   extraCharge: boolean;
+  is_public?: boolean;
+  sort_order?: number | null;
 };
 
 export const repertoireGenres = [

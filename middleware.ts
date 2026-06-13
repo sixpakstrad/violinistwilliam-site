@@ -1,7 +1,4 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-
-import { isApprovedAdminUserId } from "@/lib/adminAllowlist";
 
 const isPrivatePageRoute = createRouteMatcher(["/admin(.*)", "/requests(.*)"]);
 const isAdminApiRoute = createRouteMatcher(["/api/admin(.*)"]);
@@ -25,15 +22,7 @@ export default clerkMiddleware(async (auth, req) => {
     return authObject.redirectToSignIn({ returnBackUrl: req.url });
   }
 
-  if (isApprovedAdminUserId(authObject.userId)) {
-    return;
-  }
-
-  if (isAdminApiRoute(req)) {
-    return NextResponse.json({ error: "Access denied" }, { status: 403 });
-  }
-
-  return NextResponse.redirect(new URL("/access-denied", req.url));
+  return;
 });
 
 export const config = {

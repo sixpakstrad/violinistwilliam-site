@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "songs:import:dry": "node scripts/import-supabase-songs.mjs --dry-run",
+    "songs:import": "node scripts/import-supabase-songs.mjs --apply"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.2",

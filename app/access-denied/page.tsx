@@ -25,9 +25,8 @@ export default async function AccessDeniedPage() {
           Signed in, but not approved for admin access.
         </h1>
         <p className="mt-5 text-base leading-8 text-ivory-muted">
-          Clerk recognized the sign-in, but this account's Clerk user ID is not
-          on the approved admin list for William Samorey / Winspiration Studio
-          LLC.
+          Clerk recognized the sign-in, but this account is not on the approved
+          admin list for William Samorey / Winspiration Studio LLC.
         </p>
         <div className="mt-8 border border-ivory/10 bg-espresso/40 p-5 text-sm leading-7 text-ivory-muted">
           <p>
@@ -38,8 +37,8 @@ export default async function AccessDeniedPage() {
           </p>
           <p className="mt-4">
             For local development and Vercel, add this Clerk user ID to{" "}
-            <span className="font-mono text-ivory">ADMIN_USER_IDS</span>.
-            Email addresses are not used for final admin approval.
+            <span className="font-mono text-ivory">ADMIN_USER_IDS</span> or add
+            the email to <span className="font-mono text-ivory">ADMIN_EMAILS</span>.
           </p>
         </div>
         {isSignedIn ? (

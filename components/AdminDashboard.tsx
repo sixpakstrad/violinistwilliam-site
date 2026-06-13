@@ -26,7 +26,7 @@ import {
   type SeoPageSettings,
   type SeoSettings,
 } from "@/data/pageContent";
-import { repertoireSongs, type RepertoireSong } from "@/data/repertoire";
+import type { RepertoireSong } from "@/data/repertoire";
 import { defaultAddOns, defaultRateGuides, type RateGuide } from "@/data/rates";
 import {
   defaultEducationContent,
@@ -81,52 +81,65 @@ type AdminTab =
   | "stories"
   | "seo"
   | "details";
-type StoredRepertoireSong = Partial<RepertoireSong> & { recommended?: boolean };
+type StoredRepertoireSong = Partial<RepertoireSong> & {
+  recommended?: boolean;
+  wedding?: boolean;
+  funeral?: boolean;
+  party?: boolean;
+  request_fee?: boolean;
+};
 type StoredStoryEntry = Omit<Partial<StoryEntry>, "body"> & {
   id?: string;
   body?: string[] | string;
 };
 
 function normalizeSong(song: StoredRepertoireSong | null, index: number): RepertoireSong {
+  const category = song?.category || song?.source || "";
   const genres = Array.isArray(song?.genres)
     ? song.genres.filter(Boolean)
-    : [song?.genre || "Pop"];
+    : [song?.genre || category || "Pop"];
+  const isFavorite = song?.wills_favorite ?? song?.favoriteRecommended ?? false;
 
   return {
+    id: song?.id,
     title: song?.title || `Untitled Song ${index + 1}`,
     artist: song?.artist || "",
-    source: song?.source || "",
-    genre: genres[0] || song?.genre || "Pop",
+    category,
+    source: song?.source || category,
+    genre: genres[0] || song?.genre || category || "Pop",
     genres,
     notes: song?.notes || "",
-    sheetMusic: song?.sheetMusic || "",
-    backingTrack: song?.backingTrack || "",
-    url: song?.url || "",
-    weddingRecommended: song?.weddingRecommended ?? song?.recommended ?? false,
-    funeralRecommended: song?.funeralRecommended ?? false,
-    partyRecommended: song?.partyRecommended ?? false,
-    favoriteRecommended: song?.favoriteRecommended ?? false,
-    extraCharge: song?.extraCharge ?? false,
+    sheetMusic: song?.sheetMusic || song?.sheet_music_location || "",
+    backingTrack: song?.backingTrack || song?.backing_track_location || "",
+    url: song?.url || song?.reference_url || "",
+    weddingRecommended:
+      song?.weddingRecommended ?? song?.recommended ?? song?.wedding ?? false,
+    funeralRecommended: song?.funeralRecommended ?? song?.funeral ?? false,
+    partyRecommended: song?.partyRecommended ?? song?.party ?? false,
+    wills_favorite: isFavorite,
+    favoriteRecommended: isFavorite,
+    extraCharge: song?.extraCharge ?? song?.request_fee ?? false,
+    is_public: song?.is_public ?? true,
+    sort_order: song?.sort_order ?? null,
   };
 }
 
-function readStoredSongs(): RepertoireSong[] {
-  try {
-    const storedSongs = readStoredValue<unknown>(
-      adminStorageKeys.songs,
-      repertoireSongs,
-    );
+async function fetchAdminSongs() {
+  const response = await fetch("/api/admin/songs", { cache: "no-store" });
+  const data = (await response.json().catch(() => ({}))) as {
+    songs?: StoredRepertoireSong[];
+    error?: string;
+  };
 
-    if (!Array.isArray(storedSongs)) {
-      return repertoireSongs;
-    }
-
-    return storedSongs.map((song, index) =>
-      normalizeSong(song as StoredRepertoireSong | null, index),
-    );
-  } catch {
-    return repertoireSongs;
+  if (!response.ok) {
+    throw new Error(data.error || `Song load failed with status ${response.status}`);
   }
+
+  if (!Array.isArray(data.songs)) {
+    throw new Error("Song load did not return a songs array.");
+  }
+
+  return data.songs.map((song, index) => normalizeSong(song, index));
 }
 
 function normalizeStory(story: StoredStoryEntry, index: number): StoryEntry {
@@ -2107,7 +2120,10 @@ function readTabFromHash(): AdminTab | null {
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<AdminTab>("requests");
-  const [songs, setSongs] = useState<RepertoireSong[]>(repertoireSongs);
+  const [songs, setSongs] = useState<RepertoireSong[]>([]);
+  const [songsLoadedFromSupabase, setSongsLoadedFromSupabase] = useState(false);
+  const [dirtySongIds, setDirtySongIds] = useState<Set<string>>(() => new Set());
+  const [deletedSongIds, setDeletedSongIds] = useState<Array<string | number>>([]);
   const [songQuery, setSongQuery] = useState("");
   const [songPage, setSongPage] = useState(1);
   const [expandedSongDetails, setExpandedSongDetails] = useState<Set<number>>(
@@ -2144,7 +2160,6 @@ export function AdminDashboard() {
   const [saveMessage, setSaveMessage] = useState("");
 
   useEffect(() => {
-    setSongs(readStoredSongs());
     setStories(readStoredStories());
     const storedMainPageContent = readStoredValue(
       adminStorageKeys.mainPage,
@@ -2223,6 +2238,37 @@ export function AdminDashboard() {
 
     window.addEventListener("hashchange", syncTabToHash);
     return () => window.removeEventListener("hashchange", syncTabToHash);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSongs() {
+      try {
+        const supabaseSongs = await fetchAdminSongs();
+        if (isMounted) {
+          setSongs(supabaseSongs);
+          setSongsLoadedFromSupabase(true);
+          setDirtySongIds(new Set());
+          setDeletedSongIds([]);
+        }
+      } catch (error) {
+        console.error("Unable to load songs from Supabase:", error);
+        if (isMounted) {
+          setSongsLoadedFromSupabase(false);
+          setSaveMessage(
+            "Could not load Supabase songs. Song editor is not using fallback data.",
+          );
+          window.setTimeout(() => setSaveMessage(""), 3600);
+        }
+      }
+    }
+
+    loadSongs();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filteredSongs = useMemo(() => {
@@ -2332,9 +2378,54 @@ export function AdminDashboard() {
     window.setTimeout(() => setSaveMessage(""), 2600);
   };
 
-  const saveSongs = () => {
-    saveStoredValue(adminStorageKeys.songs, songs);
-    showSaved("Song list saved in this browser.");
+  const saveSongs = async () => {
+    if (!songsLoadedFromSupabase) {
+      showSaved("Songs are not loaded from Supabase yet. Save was not sent.");
+      return;
+    }
+
+    const songsToSave = songs.filter(
+      (song) => !song.id || dirtySongIds.has(String(song.id)),
+    );
+
+    if (songsToSave.length === 0 && deletedSongIds.length === 0) {
+      showSaved("No Supabase song changes to save.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/admin/songs", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          songs: songsToSave,
+          deletedIds: deletedSongIds,
+        }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        songs?: StoredRepertoireSong[];
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || `Save failed with status ${response.status}`);
+      }
+
+      if (Array.isArray(data.songs)) {
+        setSongs(data.songs.map((song, index) => normalizeSong(song, index)));
+      }
+      setSongsLoadedFromSupabase(true);
+      setDirtySongIds(new Set());
+      setDeletedSongIds([]);
+
+      showSaved("Song list saved to Supabase.");
+    } catch (error) {
+      console.error("Unable to save songs to Supabase:", error);
+      showSaved("Song list could not be saved to Supabase.");
+    }
   };
 
   const exportSongsAsPdf = () => {
@@ -2351,12 +2442,21 @@ export function AdminDashboard() {
     showSaved("Song list export opened. Choose Save as PDF in the print window.");
   };
 
-  const resetSongs = () => {
-    setSongs(repertoireSongs);
-    setSongPage(1);
-    setExpandedSongDetails(new Set());
-    window.localStorage.removeItem(adminStorageKeys.songs);
-    showSaved("Song list reset to the original website list.");
+  const resetSongs = async () => {
+    try {
+      const supabaseSongs = await fetchAdminSongs();
+      setSongs(supabaseSongs);
+      setSongsLoadedFromSupabase(true);
+      setDirtySongIds(new Set());
+      setDeletedSongIds([]);
+      setSongPage(1);
+      setExpandedSongDetails(new Set());
+      showSaved("Song list reloaded from Supabase.");
+    } catch (error) {
+      console.error("Unable to reload songs from Supabase:", error);
+      setSongsLoadedFromSupabase(false);
+      showSaved("Could not reload songs from Supabase.");
+    }
   };
 
   const updateSong = (
@@ -2366,9 +2466,22 @@ export function AdminDashboard() {
   ) => {
     setSongs((currentSongs) =>
       currentSongs.map((song, songIndex) =>
-        songIndex === index ? { ...song, [field]: value } : song,
+        songIndex === index
+          ? {
+              ...song,
+              [field]: value,
+              ...(field === "source" ? { category: String(value) } : {}),
+              ...(field === "wills_favorite"
+                ? { favoriteRecommended: Boolean(value) }
+                : {}),
+            }
+          : song,
       ),
     );
+    const songId = songs[index]?.id;
+    if (songId) {
+      setDirtySongIds((currentIds) => new Set(currentIds).add(String(songId)));
+    }
   };
 
   const updateSongGenres = (index: number, genres: string[]) => {
@@ -2381,6 +2494,10 @@ export function AdminDashboard() {
           : song,
       ),
     );
+    const songId = songs[index]?.id;
+    if (songId) {
+      setDirtySongIds((currentIds) => new Set(currentIds).add(String(songId)));
+    }
   };
 
   const toggleSongDetails = (index: number) => {
@@ -2404,6 +2521,7 @@ export function AdminDashboard() {
       {
         title: "New Song",
         artist: "",
+        category: "",
         source: "",
         genre: "Pop",
         genres: ["Pop"],
@@ -2414,14 +2532,26 @@ export function AdminDashboard() {
         weddingRecommended: false,
         funeralRecommended: false,
         partyRecommended: false,
+        wills_favorite: false,
         favoriteRecommended: false,
         extraCharge: false,
+        is_public: true,
+        sort_order: null,
       },
       ...currentSongs,
     ]);
   };
 
   const removeSong = (index: number) => {
+    const songId = songs[index]?.id;
+    if (songId) {
+      setDeletedSongIds((currentIds) => [...currentIds, songId]);
+      setDirtySongIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+        nextIds.delete(String(songId));
+        return nextIds;
+      });
+    }
     setSongs((currentSongs) =>
       currentSongs.filter((_, songIndex) => songIndex !== index),
     );
@@ -3327,19 +3457,26 @@ export function AdminDashboard() {
           <div className="space-y-6">
             <div ref={songListTopRef} className="scroll-mt-32" />
             <div className="elegant-surface grid gap-4 border border-ivory/10 p-5 lg:grid-cols-[1fr_auto] lg:items-end">
-              <label className="block">
-                <span className="mb-3 block text-xs uppercase tracking-[0.22em] text-gold/80">
-                  Search Songs
-                </span>
-                <input
-                  value={songQuery}
-                  onChange={(event) => {
-                    setSongQuery(event.target.value);
-                    setSongPage(1);
-                  }}
-                  className="min-h-12 w-full border border-ivory/10 bg-espresso/45 px-4 text-ivory outline-none transition focus:border-gold/70"
-                />
-              </label>
+              <div>
+                <label className="block">
+                  <span className="mb-3 block text-xs uppercase tracking-[0.22em] text-gold/80">
+                    Search Songs
+                  </span>
+                  <input
+                    value={songQuery}
+                    onChange={(event) => {
+                      setSongQuery(event.target.value);
+                      setSongPage(1);
+                    }}
+                    className="min-h-12 w-full border border-ivory/10 bg-espresso/45 px-4 text-ivory outline-none transition focus:border-gold/70"
+                  />
+                </label>
+                <p className="mt-3 text-xs uppercase tracking-[0.16em] text-ivory-muted">
+                  {songsLoadedFromSupabase
+                    ? `Loaded ${songs.length} songs from Supabase`
+                    : "Supabase songs not loaded"}
+                </p>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -3459,7 +3596,7 @@ export function AdminDashboard() {
                             ["weddingRecommended", "Wedding"],
                             ["funeralRecommended", "Funeral"],
                             ["partyRecommended", "Party"],
-                            ["favoriteRecommended", "Favorite"],
+                            ["wills_favorite", "Favorite"],
                             ["extraCharge", "Request Fee"],
                           ].map(([field, label]) => (
                             <label
@@ -3469,7 +3606,10 @@ export function AdminDashboard() {
                               <input
                                 type="checkbox"
                                 checked={Boolean(
-                                  song[field as keyof RepertoireSong],
+                                  field === "wills_favorite"
+                                    ? song.wills_favorite ??
+                                        song.favoriteRecommended
+                                    : song[field as keyof RepertoireSong],
                                 )}
                                 onChange={(event) =>
                                   updateSong(

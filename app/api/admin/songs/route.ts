@@ -32,8 +32,10 @@ export async function GET() {
     return NextResponse.json({ songs });
   } catch (error) {
     console.error("Admin songs API read error:", error);
+    const message =
+      error instanceof Error ? error.message : "Unable to load admin songs.";
     return NextResponse.json(
-      { error: "Unable to load admin songs." },
+      { error: message },
       { status: 500 },
     );
   }
@@ -77,8 +79,10 @@ export async function PUT(request: Request) {
     return NextResponse.json({ songs });
   } catch (error) {
     console.error("Admin songs API save error:", error);
+    const message =
+      error instanceof Error ? error.message : "Unable to save admin songs.";
     return NextResponse.json(
-      { error: "Unable to save admin songs." },
+      { error: message },
       { status: 500 },
     );
   }

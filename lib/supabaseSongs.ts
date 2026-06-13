@@ -1,23 +1,5 @@
 import type { RepertoireSong } from "@/data/repertoire";
 
-const adminSongColumns = [
-  "id",
-  "title",
-  "artist",
-  "category",
-  "genres",
-  "wedding",
-  "funeral",
-  "party",
-  "wills_favorite",
-  "request_fee",
-  "sheet_music_location",
-  "backing_track_location",
-  "reference_url",
-  "is_public",
-  "sort_order",
-].join(",");
-
 const publicSongColumns = [
   "id",
   "title",
@@ -56,6 +38,24 @@ type SupabaseRequestOptions = {
   body?: unknown;
   headers?: Record<string, string>;
 };
+
+const writableSongColumns = [
+  "id",
+  "title",
+  "artist",
+  "category",
+  "genres",
+  "wedding",
+  "funeral",
+  "party",
+  "wills_favorite",
+  "request_fee",
+  "sheet_music_location",
+  "backing_track_location",
+  "reference_url",
+  "is_public",
+  "sort_order",
+];
 
 function getSupabaseConfig() {
   const supabaseUrl =
@@ -219,7 +219,7 @@ export async function readSupabaseSongs({
 }: {
   publicOnly?: boolean;
 } = {}) {
-  const columns = publicOnly ? publicSongColumns : adminSongColumns;
+  const columns = publicOnly ? publicSongColumns : "*";
   const query = [
     `?select=${encodeURIComponent(columns)}`,
     publicOnly ? "&is_public=eq.true" : "",
@@ -230,8 +230,34 @@ export async function readSupabaseSongs({
   return (rows || []).map(mapSupabaseSongToRepertoireSong);
 }
 
+async function readSupabaseSongColumns() {
+  const rows = await supabaseRest<Array<Record<string, unknown>>>("songs", {
+    query: "?select=*&limit=1",
+  });
+  const firstRow = rows?.[0] || {};
+
+  return new Set(Object.keys(firstRow));
+}
+
+function filterExistingColumns(
+  row: SupabaseSongRow,
+  existingColumns: Set<string>,
+) {
+  return Object.fromEntries(
+    Object.entries(row).filter(
+      ([key, value]) =>
+        writableSongColumns.includes(key) &&
+        existingColumns.has(key) &&
+        value !== undefined,
+    ),
+  );
+}
+
 export async function saveSupabaseSongs(songs: RepertoireSong[]) {
-  const rows = songs.map(mapRepertoireSongToSupabaseRow);
+  const existingColumns = await readSupabaseSongColumns();
+  const rows = songs
+    .map(mapRepertoireSongToSupabaseRow)
+    .map((row) => filterExistingColumns(row, existingColumns));
   const rowsWithId = rows.filter((row) => row.id !== undefined && row.id !== "");
   const rowsWithoutId = rows.filter(
     (row) => row.id === undefined || row.id === "",

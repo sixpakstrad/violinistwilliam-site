@@ -2255,11 +2255,13 @@ export function AdminDashboard() {
       } catch (error) {
         console.error("Unable to load songs from Supabase:", error);
         if (isMounted) {
+          const message =
+            error instanceof Error ? error.message : "Unknown Supabase error";
           setSongsLoadedFromSupabase(false);
           setSaveMessage(
-            "Could not load Supabase songs. Song editor is not using fallback data.",
+            `Could not load Supabase songs: ${message}`,
           );
-          window.setTimeout(() => setSaveMessage(""), 3600);
+          window.setTimeout(() => setSaveMessage(""), 8000);
         }
       }
     }

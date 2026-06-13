@@ -12,8 +12,10 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Public songs API error:", error);
+    const message =
+      error instanceof Error ? error.message : "Unable to load songs.";
     return NextResponse.json(
-      { error: "Unable to load songs." },
+      { error: message },
       { status: 500 },
     );
   }

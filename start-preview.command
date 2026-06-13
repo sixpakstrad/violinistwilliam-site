@@ -3,7 +3,7 @@
 cd "$(dirname "$0")"
 
 NODE="/Users/guillaume/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
-PORT_NUMBER=3030
+PORT_NUMBER=3000
 PYTHON="/usr/bin/python3"
 
 echo "Starting a clean Winspiration Studio website preview..."
@@ -21,8 +21,8 @@ rm -rf .next
 
 echo ""
 echo "Starting the live website preview. Keep this window open."
-echo "Open http://127.0.0.1:$PORT_NUMBER"
-(sleep 4 && open "http://127.0.0.1:$PORT_NUMBER") &
+echo "Open http://localhost:$PORT_NUMBER"
+(sleep 4 && open "http://localhost:$PORT_NUMBER") &
 "$NODE" node_modules/next/dist/bin/next dev -H 127.0.0.1 -p "$PORT_NUMBER"
 
 echo ""

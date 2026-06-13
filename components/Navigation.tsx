@@ -184,13 +184,7 @@ export function Navigation() {
                         : "pointer-events-none translate-y-1 opacity-0"
                     }`}
                   >
-                    <div
-                      className={`border p-3 backdrop-blur-xl ${
-                        isStoriesPage
-                          ? "border-ivory/10 bg-espresso/60 shadow-[0_18px_50px_rgba(91,67,38,0.14)]"
-                          : "border-ivory/10 bg-espresso/60 shadow-[0_18px_50px_rgba(91,67,38,0.14)]"
-                      }`}
-                    >
+                    <div className="border border-[#c9aa70]/45 bg-[#fff7e8]/80 p-4 shadow-[0_24px_70px_rgba(34,24,14,0.22),0_0_0_1px_rgba(255,255,255,0.62)] backdrop-blur-sm">
                       {group.links.map((link) => {
                         const isExternal = link.href.startsWith("http");
 
@@ -200,11 +194,7 @@ export function Navigation() {
                             href={link.href}
                             target={isExternal ? "_blank" : undefined}
                             rel={isExternal ? "noreferrer" : undefined}
-                            className={`block px-3 py-3 text-xs uppercase tracking-[0.16em] transition ${
-                              isStoriesPage
-                                ? "text-ivory hover:bg-ivory/[0.09] hover:text-gold"
-                                : "text-ivory hover:bg-ivory/[0.09] hover:text-gold"
-                            }`}
+                            className="block px-4 py-3.5 text-xs uppercase tracking-[0.16em] text-[#2f241c] transition hover:bg-[#ead8b8] hover:text-[#6f4f1f] focus:bg-[#ead8b8] focus:text-[#6f4f1f] focus:outline-none"
                           >
                             {link.label}
                           </Link>
@@ -242,10 +232,10 @@ export function Navigation() {
               >
                 {group.label}
               </summary>
-              <div className="mt-2 grid min-w-52 border border-ivory/10 bg-espresso/70 p-2 backdrop-blur-xl">
+              <div className="mt-2 grid min-w-56 border border-[#c9aa70]/45 bg-[#fff7e8]/80 p-3 shadow-[0_18px_48px_rgba(34,24,14,0.20),0_0_0_1px_rgba(255,255,255,0.62)] backdrop-blur-sm">
                 <Link
                   href={group.href}
-                  className="px-3 py-2 text-[0.62rem] uppercase tracking-[0.16em] text-gold/85"
+                  className="px-4 py-3 text-[0.68rem] uppercase tracking-[0.16em] text-[#7b5a24]"
                 >
                   {group.label}
                 </Link>
@@ -258,7 +248,7 @@ export function Navigation() {
                       href={link.href}
                       target={isExternal ? "_blank" : undefined}
                       rel={isExternal ? "noreferrer" : undefined}
-                      className="px-3 py-2 text-[0.62rem] uppercase tracking-[0.16em] text-ivory-muted"
+                      className="px-4 py-3 text-[0.68rem] uppercase tracking-[0.16em] text-[#2f241c] transition hover:bg-[#ead8b8] hover:text-[#6f4f1f] focus:bg-[#ead8b8] focus:text-[#6f4f1f] focus:outline-none"
                     >
                       {link.label}
                     </Link>

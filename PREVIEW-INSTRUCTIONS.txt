@@ -1,12 +1,12 @@
 Winspiration Studio Website Preview
 
 Use this same address every time:
-http://127.0.0.1:3030
+http://localhost:3000
 
 To start the preview:
 1. Double-click start-preview.command
 2. Keep the Terminal window open
-3. Open or refresh http://127.0.0.1:3030
+3. Open or refresh http://localhost:3000
 
 What changed:
 The preview now runs the live Next.js website instead of a frozen static copy.
@@ -19,6 +19,6 @@ If the page will not load:
 If Safari still shows an old version:
 1. Quit the preview Terminal window
 2. Double-click start-preview.command again
-3. Refresh http://127.0.0.1:3030
+3. Refresh http://localhost:3000
 
-The preview file now always uses port 3030.
+The preview file now always uses port 3000.

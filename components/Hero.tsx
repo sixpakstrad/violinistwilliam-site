@@ -41,9 +41,9 @@ export function Hero() {
           aria-label="William Samorey on stage"
         >
           <img
-            src={content.primaryImage || "/media/samorey-stage.png"}
-            alt="William Samorey holding violin on a warm concert hall stage"
-            className="h-full w-full object-cover object-center"
+            src={content.primaryImage || "/media/brahms-stained-glass.jpg"}
+            alt="William Samorey performing violin with orchestra in front of stained glass"
+            className="h-full w-full object-cover object-[48%_45%]"
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(251,247,239,0.18),rgba(251,247,239,0.03)_44%,rgba(47,41,35,0.12)),linear-gradient(0deg,rgba(47,41,35,0.42),transparent_48%)]" />
         </motion.div>

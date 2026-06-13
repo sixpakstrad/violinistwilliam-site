@@ -78,8 +78,8 @@ export function MainPageContent() {
             aria-label="William Samorey on stage"
           >
             <img
-              src={content.hero.primaryImage || "/media/samorey-stage.png"}
-              alt="William Samorey holding violin on a warm concert hall stage"
+              src={content.hero.primaryImage || "/media/brahms-stained-glass.jpg"}
+              alt="William Samorey performing violin with orchestra in front of stained glass"
               className="h-full w-full object-center"
               style={{
                 objectFit: heroImageFit,

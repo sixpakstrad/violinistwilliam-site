@@ -2,17 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  readCurrentEventName,
-  readRequestsEnabled,
-  readSongRequests,
-  saveCurrentEventName,
-  saveRequestsEnabled,
-  saveSongRequests,
   type ReviewStatus,
   type RequestStatus,
   type StoredSongRequest,
 } from "@/data/songRequests";
 import { songRequestSettings } from "@/data/songRequestSettings";
+
+type RequestSettings = {
+  enabled: boolean;
+  currentEvent: string;
+};
 
 function getExternalHref(value: string) {
   const trimmedValue = value.trim();
@@ -38,14 +37,48 @@ export function SongRequestBoard() {
   const [requestsEnabled, setRequestsEnabled] = useState<boolean>(
     songRequestSettings.enabled,
   );
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    setRequests(readSongRequests());
-    setRequestsEnabled(readRequestsEnabled());
-    const savedEvent = readCurrentEventName();
-    setCurrentEvent(savedEvent);
-    setEventDraft(savedEvent);
+    refreshRequests();
   }, []);
+
+  const applyRequestPayload = (data: {
+    requests?: StoredSongRequest[];
+    settings?: RequestSettings;
+  }) => {
+    if (Array.isArray(data.requests)) {
+      setRequests(data.requests);
+    }
+
+    if (data.settings) {
+      setRequestsEnabled(data.settings.enabled);
+      setCurrentEvent(data.settings.currentEvent || "Open Requests");
+      setEventDraft(data.settings.currentEvent || "Open Requests");
+    }
+  };
+
+  const showMessage = (nextMessage: string) => {
+    setMessage(nextMessage);
+    window.setTimeout(() => setMessage(""), 5000);
+  };
+
+  const fetchAdminRequests = async () => {
+    const response = await fetch("/api/admin/requests", { cache: "no-store" });
+    const data = (await response.json().catch(() => ({}))) as {
+      requests?: StoredSongRequest[];
+      settings?: RequestSettings;
+      error?: string;
+    };
+
+    if (!response.ok) {
+      throw new Error(data.error || "Unable to load live requests.");
+    }
+
+    return data;
+  };
 
   const filteredRequests = useMemo(() => {
     const eventRequests = requests.filter(
@@ -77,41 +110,187 @@ export function SongRequestBoard() {
     [currentEvent, requests],
   );
 
-  const updateStatus = (id: string, status: RequestStatus) => {
-    const nextRequests = requests.map((request) =>
-      request.id === id ? { ...request, status } : request,
-    );
-    setRequests(nextRequests);
-    saveSongRequests(nextRequests);
+  const updateStatus = async (id: string, status: RequestStatus) => {
+    setIsSaving(true);
+
+    try {
+      const response = await fetch("/api/admin/requests", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id, status }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        requests?: StoredSongRequest[];
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to update request.");
+      }
+
+      if (Array.isArray(data.requests)) {
+        setRequests(data.requests);
+      }
+    } catch (error) {
+      showMessage(
+        error instanceof Error ? error.message : "Unable to update request.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const updateReviewStatus = (id: string, reviewStatus: ReviewStatus) => {
-    const nextRequests = requests.map((request) =>
-      request.id === id ? { ...request, reviewStatus } : request,
-    );
-    setRequests(nextRequests);
-    saveSongRequests(nextRequests);
+  const updateReviewStatus = async (id: string, reviewStatus: ReviewStatus) => {
+    setIsSaving(true);
+
+    try {
+      const response = await fetch("/api/admin/requests", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id, reviewStatus }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        requests?: StoredSongRequest[];
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to update review.");
+      }
+
+      if (Array.isArray(data.requests)) {
+        setRequests(data.requests);
+      }
+    } catch (error) {
+      showMessage(
+        error instanceof Error ? error.message : "Unable to update review.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const refreshRequests = () => {
-    setRequests(readSongRequests());
-    setRequestsEnabled(readRequestsEnabled());
-    const savedEvent = readCurrentEventName();
-    setCurrentEvent(savedEvent);
-    setEventDraft(savedEvent);
+  const clearRequestsByStatus = async (status: "played" | "archived") => {
+    const matchingCount = requests.filter(
+      (request) =>
+        request.eventName === currentEvent && request.status === status,
+    ).length;
+
+    if (matchingCount === 0) {
+      showMessage(`No ${status} requests to delete for ${currentEvent}.`);
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete all ${status} requests for ${currentEvent}? This cannot be undone.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const response = await fetch("/api/admin/requests", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status, eventName: currentEvent }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        requests?: StoredSongRequest[];
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || `Unable to delete ${status} requests.`);
+      }
+
+      if (Array.isArray(data.requests)) {
+        setRequests(data.requests);
+      }
+
+      showMessage(
+        `Deleted ${matchingCount} ${status} request${
+          matchingCount === 1 ? "" : "s"
+        } for ${currentEvent}.`,
+      );
+    } catch (error) {
+      showMessage(
+        error instanceof Error
+          ? error.message
+          : `Unable to delete ${status} requests.`,
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  async function refreshRequests() {
+    setIsLoading(true);
+
+    try {
+      const data = await fetchAdminRequests();
+      applyRequestPayload(data);
+    } catch (error) {
+      showMessage(
+        error instanceof Error ? error.message : "Unable to load live requests.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveRequestSettings = async (settings: Partial<RequestSettings>) => {
+    setIsSaving(true);
+
+    try {
+      const response = await fetch("/api/admin/request-settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(settings),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        settings?: RequestSettings;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to update request settings.");
+      }
+
+      if (data.settings) {
+        setRequestsEnabled(data.settings.enabled);
+        setCurrentEvent(data.settings.currentEvent || "Open Requests");
+        setEventDraft(data.settings.currentEvent || "Open Requests");
+      }
+    } catch (error) {
+      showMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to update request settings.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const toggleRequests = () => {
     const nextEnabled = !requestsEnabled;
-    setRequestsEnabled(nextEnabled);
-    saveRequestsEnabled(nextEnabled);
+    saveRequestSettings({ enabled: nextEnabled, currentEvent });
   };
 
   const saveEventMode = () => {
     const nextEvent = eventDraft.trim() || "Open Requests";
-    setCurrentEvent(nextEvent);
-    setEventDraft(nextEvent);
-    saveCurrentEventName(nextEvent);
+    saveRequestSettings({ enabled: requestsEnabled, currentEvent: nextEvent });
   };
 
   const currentEventCount = requests.filter(
@@ -137,6 +316,7 @@ export function SongRequestBoard() {
             <button
               type="button"
               onClick={toggleRequests}
+              disabled={isSaving}
               className={`border px-4 py-3 text-xs uppercase tracking-[0.18em] transition ${
                 requestsEnabled
                   ? "border-gold bg-gold/10 text-ivory"
@@ -148,12 +328,19 @@ export function SongRequestBoard() {
             <button
               type="button"
               onClick={refreshRequests}
-              className="border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory"
+              disabled={isLoading || isSaving}
+              className="border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Refresh
+              {isLoading ? "Loading" : "Refresh"}
             </button>
           </div>
         </div>
+
+        {message ? (
+          <div className="mb-8 border border-gold/25 bg-gold/10 p-4 text-sm leading-7 text-ivory-muted">
+            {message}
+          </div>
+        ) : null}
 
         <div className="elegant-surface mb-8 grid gap-4 border border-ivory/10 p-5 lg:grid-cols-[1fr_auto] lg:items-end">
           <label className="block">
@@ -170,7 +357,8 @@ export function SongRequestBoard() {
           <button
             type="button"
             onClick={saveEventMode}
-            className="inline-flex min-h-12 items-center justify-center bg-ivory px-5 text-xs font-medium uppercase tracking-[0.18em] text-espresso transition hover:bg-gold"
+            disabled={isSaving}
+            className="inline-flex min-h-12 items-center justify-center bg-ivory px-5 text-xs font-medium uppercase tracking-[0.18em] text-espresso transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-60"
           >
             Set Event Mode
           </button>
@@ -198,6 +386,23 @@ export function SongRequestBoard() {
             ))}
           </div>
         </div>
+
+        {filter === "played" || filter === "archived" ? (
+          <div className="mb-8 flex flex-col gap-3 border border-gold/20 bg-gold/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm leading-7 text-ivory-muted">
+              Clear only {filter} requests for {currentEvent}. Other request
+              tabs and the main song library are untouched.
+            </p>
+            <button
+              type="button"
+              onClick={() => clearRequestsByStatus(filter)}
+              disabled={isSaving || filteredRequests.length === 0}
+              className="inline-flex min-h-11 items-center justify-center border border-gold/45 px-4 text-xs font-medium uppercase tracking-[0.18em] text-ivory transition hover:border-gold hover:bg-gold/15 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Clear {filter} requests
+            </button>
+          </div>
+        ) : null}
 
         {filteredRequests.length === 0 ? (
           <div className="elegant-surface border border-ivory/10 p-8 text-center text-ivory-muted">
@@ -323,6 +528,7 @@ export function SongRequestBoard() {
                   <button
                     type="button"
                     onClick={() => updateStatus(request.id, "playlist")}
+                    disabled={isSaving}
                     className="border border-gold/35 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold hover:text-ivory"
                   >
                     Add to Playlist
@@ -330,6 +536,7 @@ export function SongRequestBoard() {
                   <button
                     type="button"
                     onClick={() => updateStatus(request.id, "played")}
+                    disabled={isSaving}
                     className="border border-gold/35 bg-gold/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory transition hover:border-gold hover:bg-gold/20"
                   >
                     Played
@@ -337,6 +544,7 @@ export function SongRequestBoard() {
                   <button
                     type="button"
                     onClick={() => updateStatus(request.id, "archived")}
+                    disabled={isSaving}
                     className="border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-ivory/35 hover:text-ivory"
                   >
                     Archive
@@ -345,6 +553,7 @@ export function SongRequestBoard() {
                     <button
                       type="button"
                       onClick={() => updateStatus(request.id, "new")}
+                      disabled={isSaving}
                       className="border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory"
                     >
                       Restore
@@ -403,6 +612,7 @@ export function SongRequestBoard() {
                     <button
                       type="button"
                       onClick={() => updateReviewStatus(request.id, "approved")}
+                      disabled={isSaving}
                       className="border border-gold/35 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold hover:text-ivory"
                     >
                       Approve
@@ -410,6 +620,7 @@ export function SongRequestBoard() {
                     <button
                       type="button"
                       onClick={() => updateReviewStatus(request.id, "featured")}
+                      disabled={isSaving}
                       className="border border-gold/35 bg-gold/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory transition hover:border-gold hover:bg-gold/20"
                     >
                       Feature
@@ -417,6 +628,7 @@ export function SongRequestBoard() {
                     <button
                       type="button"
                       onClick={() => updateReviewStatus(request.id, "archived")}
+                      disabled={isSaving}
                       className="border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-ivory/35 hover:text-ivory"
                     >
                       Archive Review

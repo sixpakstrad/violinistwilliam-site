@@ -23,6 +23,9 @@ export function TipModal({ isOpen, onClose }: TipModalProps) {
       return;
     }
 
+    const originalBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
@@ -30,7 +33,10 @@ export function TipModal({ isOpen, onClose }: TipModalProps) {
     };
 
     window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) {
@@ -38,9 +44,9 @@ export function TipModal({ isOpen, onClose }: TipModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-[140] overflow-y-auto bg-[#2f2923]/[0.78] px-3 py-4 sm:px-5 sm:py-6">
-      <div className="mx-auto flex min-h-[calc(100dvh-2rem)] w-full max-w-2xl items-start justify-center sm:min-h-[calc(100dvh-3rem)]">
-        <div className="relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto border border-gold/45 bg-[#2f2923]/[0.96] p-4 text-[#fffaf3] shadow-candle sm:max-h-[calc(100dvh-3rem)] sm:p-6">
+    <div className="fixed inset-0 z-[240] overflow-y-auto bg-[#2f2923]/[0.82] px-3 pb-4 pt-28 sm:px-5 sm:pb-6 sm:pt-32">
+      <div className="mx-auto flex min-h-[calc(100dvh-8rem)] w-full max-w-2xl items-start justify-center sm:min-h-[calc(100dvh-9rem)] sm:items-center">
+        <div className="relative z-[250] max-h-[calc(100dvh-8rem)] w-full overflow-y-auto border border-gold/45 bg-[#2f2923]/[0.98] p-4 text-[#fffaf3] shadow-candle sm:max-h-[calc(100dvh-9rem)] sm:p-6">
         <button
           type="button"
           onClick={onClose}

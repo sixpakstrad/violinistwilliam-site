@@ -3,13 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { RepertoireSong } from "@/data/repertoire";
-import {
-  createRequestId,
-  readCurrentEventName,
-  readSongRequests,
-  saveSongRequests,
-  type StoredSongRequest,
-} from "@/data/songRequests";
 import { songRequestSettings } from "@/data/songRequestSettings";
 import { TipModal } from "@/components/TipModal";
 
@@ -35,6 +28,8 @@ export function SongRequestModal({ song, onClose }: SongRequestModalProps) {
   const [submitted, setSubmitted] = useState(false);
   const [showTip, setShowTip] = useState(false);
   const [reviewCopied, setReviewCopied] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     setGuestName("");
@@ -44,6 +39,8 @@ export function SongRequestModal({ song, onClose }: SongRequestModalProps) {
     setSubmitted(false);
     setShowTip(false);
     setReviewCopied(false);
+    setIsSaving(false);
+    setSaveError("");
   }, [song]);
 
   const smsHref = useMemo(() => {
@@ -67,30 +64,45 @@ export function SongRequestModal({ song, onClose }: SongRequestModalProps) {
     return null;
   }
 
-  const saveRequest = () => {
-    const request: StoredSongRequest = {
-      id: createRequestId(),
-      eventName: readCurrentEventName(),
-      title: song.title,
-      artist: song.artist,
-      source: song.source,
-      genre: getSongGenres(song).join(", "),
-      notes: song.notes || "",
-      sheetMusic: song.sheetMusic || "",
-      backingTrack: song.backingTrack || "",
-      url: song.url || "",
-      guestName,
-      review,
-      reviewMarketingPermission,
-      reviewDisplayName,
-      reviewStatus: "new",
-      requestedAt: new Date().toISOString(),
-      status: "new",
-    };
+  const saveRequest = async () => {
+    setIsSaving(true);
+    setSaveError("");
 
-    const requests = [request, ...readSongRequests()];
-    saveSongRequests(requests);
-    setSubmitted(true);
+    try {
+      const response = await fetch("/api/requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: song.title,
+          artist: song.artist,
+          source: song.source,
+          genre: getSongGenres(song).join(", "),
+          guestName,
+          review,
+          reviewMarketingPermission,
+          reviewDisplayName,
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to save this request.");
+      }
+
+      setSubmitted(true);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "Unable to save this request.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const copyReview = async () => {
@@ -241,9 +253,10 @@ export function SongRequestModal({ song, onClose }: SongRequestModalProps) {
             <button
               type="button"
               onClick={saveRequest}
-              className="inline-flex min-h-12 items-center justify-center bg-ivory px-6 text-sm font-medium uppercase tracking-[0.2em] text-espresso transition hover:bg-gold"
+              disabled={isSaving}
+              className="inline-flex min-h-12 items-center justify-center bg-ivory px-6 text-sm font-medium uppercase tracking-[0.2em] text-espresso transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Add Request
+              {isSaving ? "Saving..." : "Add Request"}
             </button>
           ) : null}
           {submitted ? (
@@ -280,6 +293,9 @@ export function SongRequestModal({ song, onClose }: SongRequestModalProps) {
             </a>
           ) : null}
         </div>
+        {saveError ? (
+          <p className="mt-4 text-sm leading-7 text-gold">{saveError}</p>
+        ) : null}
       </div>
 
       <TipModal isOpen={showTip} onClose={() => setShowTip(false)} />

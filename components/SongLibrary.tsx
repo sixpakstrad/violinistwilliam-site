@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Reveal } from "@/components/Reveal";
 import { repertoireGenres } from "@/data/repertoire";
 import type { RepertoireSong } from "@/data/repertoire";
-import { readRequestsEnabled } from "@/data/songRequests";
 import { songRequestSettings } from "@/data/songRequestSettings";
 import { SongRequestModal } from "@/components/SongRequestModal";
 import { TipModal } from "@/components/TipModal";
@@ -138,15 +137,33 @@ export function SongLibrary() {
   );
 
   useEffect(() => {
-    const syncRequestsEnabled = () => setRequestsEnabled(readRequestsEnabled());
+    let isMounted = true;
 
-    syncRequestsEnabled();
-    window.addEventListener("storage", syncRequestsEnabled);
-    window.addEventListener("focus", syncRequestsEnabled);
+    async function loadRequestSettings() {
+      try {
+        const response = await fetch("/api/request-settings", {
+          cache: "no-store",
+        });
+        const data = (await response.json().catch(() => ({}))) as {
+          enabled?: boolean;
+        };
+
+        if (!response.ok) {
+          throw new Error("Unable to load request settings.");
+        }
+
+        if (isMounted) {
+          setRequestsEnabled(data.enabled ?? songRequestSettings.enabled);
+        }
+      } catch (error) {
+        console.error("Unable to load live request settings:", error);
+      }
+    }
+
+    loadRequestSettings();
 
     return () => {
-      window.removeEventListener("storage", syncRequestsEnabled);
-      window.removeEventListener("focus", syncRequestsEnabled);
+      isMounted = false;
     };
   }, []);
 

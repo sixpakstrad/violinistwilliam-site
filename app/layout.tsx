@@ -34,6 +34,14 @@ export const metadata: Metadata = {
       "Live violin performance, wedding music, private events, lessons, bow rehair, and instrument care by William Samorey.",
     images: ["/media/ws-logo-full.png"],
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
 };
 
 export default function RootLayout({

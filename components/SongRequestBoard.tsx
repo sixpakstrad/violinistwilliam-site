@@ -45,10 +45,15 @@ export function SongRequestBoard() {
     refreshRequests();
   }, []);
 
-  const applyRequestPayload = (data: {
-    requests?: StoredSongRequest[];
-    settings?: RequestSettings;
-  }) => {
+  const applyRequestPayload = (
+    data: {
+      requests?: StoredSongRequest[];
+      settings?: RequestSettings;
+    },
+    options: { syncEventDraft?: boolean } = {},
+  ) => {
+    const syncEventDraft = options.syncEventDraft ?? true;
+
     if (Array.isArray(data.requests)) {
       setRequests(data.requests);
     }
@@ -56,7 +61,9 @@ export function SongRequestBoard() {
     if (data.settings) {
       setRequestsEnabled(data.settings.enabled);
       setCurrentEvent(data.settings.currentEvent || "Open Requests");
-      setEventDraft(data.settings.currentEvent || "Open Requests");
+      if (syncEventDraft) {
+        setEventDraft(data.settings.currentEvent || "Open Requests");
+      }
     }
   };
 
@@ -232,20 +239,42 @@ export function SongRequestBoard() {
     }
   };
 
-  async function refreshRequests() {
-    setIsLoading(true);
+  async function refreshRequests(options: { silent?: boolean } = {}) {
+    const silent = options.silent ?? false;
+
+    if (!silent) {
+      setIsLoading(true);
+    }
 
     try {
       const data = await fetchAdminRequests();
-      applyRequestPayload(data);
+      applyRequestPayload(data, { syncEventDraft: !silent });
     } catch (error) {
-      showMessage(
-        error instanceof Error ? error.message : "Unable to load live requests.",
-      );
+      if (silent) {
+        console.error("Unable to auto-refresh live requests:", error);
+      } else {
+        showMessage(
+          error instanceof Error
+            ? error.message
+            : "Unable to load live requests.",
+        );
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   };
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible" && !isSaving) {
+        refreshRequests({ silent: true });
+      }
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isSaving]);
 
   const saveRequestSettings = async (settings: Partial<RequestSettings>) => {
     setIsSaving(true);
@@ -327,7 +356,7 @@ export function SongRequestBoard() {
             </button>
             <button
               type="button"
-              onClick={refreshRequests}
+              onClick={() => refreshRequests()}
               disabled={isLoading || isSaving}
               className="border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory disabled:cursor-not-allowed disabled:opacity-60"
             >

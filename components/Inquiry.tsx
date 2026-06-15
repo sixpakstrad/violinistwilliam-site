@@ -4,7 +4,13 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Reveal } from "@/components/Reveal";
 
-type InquiryType = "performance" | "teaching" | "repair";
+type InquiryType =
+  | "performance"
+  | "teaching"
+  | "repair"
+  | "instrument-program";
+
+type ProgramInquiryType = "loan" | "instrument-donation" | "money" | "other";
 
 type InquiryOption = {
   id: InquiryType;
@@ -12,10 +18,45 @@ type InquiryOption = {
   description: string;
 };
 
+const programInquiryLabels: Record<ProgramInquiryType, string> = {
+  loan: "Request an instrument loan",
+  "instrument-donation": "Donate an instrument",
+  money: "Support the instrument fund financially",
+  other: "General question about the program",
+};
+
+const programInquiryOptions = [
+  {
+    value: "loan",
+    label: programInquiryLabels.loan,
+    description: "For K-12 violin, viola, or cello students needing an instrument.",
+  },
+  {
+    value: "instrument-donation",
+    label: programInquiryLabels["instrument-donation"],
+    description: "Offer a violin, viola, cello, bow, case, or related accessory.",
+  },
+  {
+    value: "money",
+    label: programInquiryLabels.money,
+    description: "Ask about helping with repairs, setups, strings, and accessories.",
+  },
+  {
+    value: "other",
+    label: programInquiryLabels.other,
+    description: "Start a conversation if you are not sure which path fits.",
+  },
+] as Array<{
+  value: ProgramInquiryType;
+  label: string;
+  description: string;
+}>;
+
 const captchaChallenges: Record<InquiryType, { question: string; answer: string }> = {
   performance: { question: "What is 4 + 3?", answer: "7" },
   teaching: { question: "What is 6 + 2?", answer: "8" },
   repair: { question: "What is 5 + 4?", answer: "9" },
+  "instrument-program": { question: "What is 3 + 5?", answer: "8" },
 };
 
 const inquiryOptions: InquiryOption[] = [
@@ -36,6 +77,11 @@ const inquiryOptions: InquiryOption[] = [
     title: "Bow Repair & Instrument Care Inquiry",
     description:
       "Bow rehairs, bow repair, instrument setup, maintenance, and playability questions.",
+  },
+  {
+    id: "instrument-program",
+    title: "Winspiration Studio Instrument Loan and Support Program",
+    description: "",
   },
 ];
 
@@ -69,6 +115,34 @@ const repairServices = [
   "Unsure",
 ];
 
+const contactMethods = ["Email", "Phone", "Text"];
+
+const programInstrumentOptions = ["Violin", "Viola", "Cello"];
+
+const studentPrivateLessonOptions = ["Yes", "No", "Planning to start"];
+
+const donationItemOptions = ["Violin", "Viola", "Cello", "Bow", "Case", "Other"];
+
+const instrumentConditionOptions = ["Playable", "Needs repair", "Unsure"];
+
+const bowCaseOptions = ["Yes", "No", "Unsure"];
+
+const supportTypeOptions = [
+  "One-time contribution",
+  "Recurring contribution",
+  "Sponsor a repair/setup",
+  "Sponsor strings/accessories",
+  "Larger gift or conversation",
+];
+
+const amountRangeOptions = [
+  "$25-$50",
+  "$50-$100",
+  "$100-$250",
+  "$250+",
+  "I'd like to discuss",
+];
+
 const hourOptions = Array.from({ length: 12 }, (_, index) => String(index + 1));
 const minuteOptions = Array.from({ length: 12 }, (_, index) =>
   String(index * 5).padStart(2, "0"),
@@ -76,7 +150,12 @@ const minuteOptions = Array.from({ length: 12 }, (_, index) =>
 const periodOptions = ["AM", "PM"];
 
 function normalizeInquiryType(type: string | null): InquiryType | null {
-  if (type === "teaching" || type === "repair" || type === "performance") {
+  if (
+    type === "teaching" ||
+    type === "repair" ||
+    type === "performance" ||
+    type === "instrument-program"
+  ) {
     return type;
   }
 
@@ -232,11 +311,13 @@ function SelectField({
   name,
   options,
   placeholder = "Select one",
+  required = false,
 }: {
   label: string;
   name: string;
   options: string[];
   placeholder?: string;
+  required?: boolean;
 }) {
   return (
     <label className="block">
@@ -246,6 +327,7 @@ function SelectField({
       <select
         name={name}
         defaultValue=""
+        required={required}
         className="min-h-14 w-full border border-ivory/10 bg-espresso/40 px-4 text-ivory outline-none transition focus:border-gold/70 focus:bg-espresso/65"
       >
         <option value="" disabled>
@@ -266,11 +348,13 @@ function TextAreaField({
   name,
   placeholder,
   rows = 5,
+  required = false,
 }: {
   label: string;
   name: string;
   placeholder?: string;
   rows?: number;
+  required?: boolean;
 }) {
   return (
     <label className="block">
@@ -281,6 +365,7 @@ function TextAreaField({
         name={name}
         rows={rows}
         placeholder={placeholder}
+        required={required}
         className="w-full resize-none border border-ivory/10 bg-espresso/40 px-4 py-4 text-ivory outline-none transition placeholder:text-ivory-muted/35 focus:border-gold/70 focus:bg-espresso/65"
       />
     </label>
@@ -321,16 +406,43 @@ function CheckboxGroup({
   );
 }
 
+function RequiredCheckbox({
+  name,
+  label,
+}: {
+  name: string;
+  label: string;
+}) {
+  return (
+    <label className="flex gap-3 border border-gold/25 bg-gold/10 px-4 py-4 text-sm leading-7 text-ivory-muted">
+      <input
+        type="checkbox"
+        name={name}
+        value="Yes"
+        required
+        className="mt-1 h-4 w-4 accent-gold"
+      />
+      <span>{label}</span>
+    </label>
+  );
+}
+
 function InquiryForm({
   selectedType,
   submittedType,
   captchaError,
+  submitError,
+  successMessage,
+  isSubmitting,
   onSubmit,
   onClose,
 }: {
   selectedType: InquiryType;
   submittedType: InquiryType | null;
   captchaError: string;
+  submitError: string;
+  successMessage: string;
+  isSubmitting: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onClose: () => void;
 }) {
@@ -348,21 +460,38 @@ function InquiryForm({
     >
       <div className="absolute inset-x-0 top-0 h-px candleline opacity-70" />
       <input type="hidden" name="inquiryType" value={selectedType} />
+      <div className="hidden" aria-hidden="true">
+        <label>
+          Website
+          <input
+            name="website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+          />
+        </label>
+      </div>
 
       <div className="mb-7">
         <p className="text-xs uppercase tracking-[0.28em] text-bronze-soft">
           {title}
         </p>
-        <p className="mt-3 text-sm leading-7 text-ivory-muted">
-          To keep scheduling, repair details, and event information organized,
-          all inquiries begin through the form. Phone consultations are
-          available when helpful after initial details are received.
-        </p>
+        {selectedType !== "instrument-program" ? (
+          <p className="mt-3 text-sm leading-7 text-ivory-muted">
+            To keep scheduling, repair details, and event information
+            organized, all inquiries begin through the form. Phone
+            consultations are available when helpful after initial details are
+            received.
+          </p>
+        ) : null}
       </div>
 
       {selectedType === "performance" ? <PerformanceInquiryFields /> : null}
       {selectedType === "teaching" ? <TeachingInquiryFields /> : null}
       {selectedType === "repair" ? <RepairInquiryFields /> : null}
+      {selectedType === "instrument-program" ? (
+        <InstrumentProgramInquiryFields />
+      ) : null}
 
       <div className="mt-7 border border-gold/20 bg-espresso/35 p-4">
         <label className="block">
@@ -389,17 +518,27 @@ function InquiryForm({
 
       {submittedType === selectedType ? (
         <p className="mt-6 border border-gold/20 bg-ivory/[0.045] px-4 py-3 text-sm leading-6 text-ivory-muted">
-          This inquiry form is ready for future delivery setup. Email/backend
-          sending has not been connected yet.
+          {successMessage}
+        </p>
+      ) : null}
+
+      {submitError ? (
+        <p className="mt-6 border border-gold/30 bg-gold/10 px-4 py-3 text-sm leading-6 text-gold">
+          {submitError}
         </p>
       ) : null}
 
       <div className="mt-6 flex flex-wrap gap-3">
         <button
           type="submit"
-          className="inline-flex min-h-12 w-full items-center justify-center bg-ivory px-7 text-sm font-medium uppercase tracking-[0.22em] text-espresso transition duration-300 hover:bg-gold focus:outline-none focus:ring-2 focus:ring-gold focus:ring-offset-2 focus:ring-offset-espresso sm:w-auto"
+          disabled={isSubmitting}
+          className="inline-flex min-h-12 w-full items-center justify-center bg-ivory px-7 text-sm font-medium uppercase tracking-[0.22em] text-espresso transition duration-300 hover:bg-gold focus:outline-none focus:ring-2 focus:ring-gold focus:ring-offset-2 focus:ring-offset-espresso disabled:cursor-wait disabled:opacity-60 sm:w-auto"
         >
-          Send Inquiry
+          {isSubmitting
+            ? "Sending..."
+            : selectedType === "instrument-program"
+            ? "Send Instrument Loan / Support Inquiry"
+            : "Send Inquiry"}
         </button>
         <button
           type="button"
@@ -571,24 +710,272 @@ function RepairInquiryFields() {
   );
 }
 
+function InstrumentProgramInquiryFields() {
+  const [programType, setProgramType] = useState<ProgramInquiryType | "">("");
+
+  return (
+    <div className="space-y-7">
+      <p className="text-sm leading-7 text-ivory-muted">
+        Use this form to request an instrument loan, offer an instrument
+        donation, or ask about supporting the program. I&apos;ll review your
+        inquiry and follow up directly. For program purpose and eligibility
+        details, see{" "}
+        <a
+          href="/about#instrument-loans"
+          className="border-b border-gold/45 text-ivory transition hover:border-gold hover:text-gold"
+        >
+          the About page program section
+        </a>
+        .
+      </p>
+
+      <fieldset>
+        <legend className="mb-3 block text-xs uppercase tracking-[0.24em] text-gold/80">
+          Primary inquiry type
+        </legend>
+        <div className="grid gap-3 md:grid-cols-2">
+          {programInquiryOptions.map((option) => {
+            const isSelected = programType === option.value;
+
+            return (
+              <label
+                key={option.value}
+                className={`cursor-pointer border px-4 py-4 transition duration-300 ${
+                  isSelected
+                    ? "border-gold/70 bg-gold/15 text-ivory shadow-[0_18px_42px_rgba(132,104,60,0.14)]"
+                    : "border-ivory/10 bg-espresso/35 text-ivory-muted hover:border-gold/45 hover:text-ivory"
+                }`}
+              >
+                <span className="flex items-start gap-3">
+                  <input
+                    type="radio"
+                    name="programInquiryType"
+                    value={option.value}
+                    checked={isSelected}
+                    onChange={(event) =>
+                      setProgramType(event.target.value as ProgramInquiryType)
+                    }
+                    required
+                    className="mt-1 h-4 w-4 accent-gold"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-ivory">
+                      {option.label}
+                    </span>
+                    <span className="mt-2 block text-sm leading-6">
+                      {option.description}
+                    </span>
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      {programType ? (
+        <>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <TextField label="Name" name="name" placeholder="Your name" required />
+            <TextField
+              label="Email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+            />
+            <TextField label="Phone" name="phone" type="tel" />
+            <SelectField
+              label="Preferred contact method"
+              name="preferredContactMethod"
+              options={contactMethods}
+              required
+            />
+            <TextField label="City/state" name="cityState" required />
+          </div>
+
+          {programType === "loan" ? (
+            <div className="space-y-7 border border-gold/20 bg-espresso/25 p-4 sm:p-5">
+              <p className="text-xs uppercase tracking-[0.24em] text-gold/80">
+                Instrument Loan Request
+              </p>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <TextField
+                  label="Parent/guardian name"
+                  name="parentGuardianName"
+                  required
+                />
+                <TextField label="Student name" name="studentName" required />
+                <TextField label="Student grade" name="studentGrade" required />
+                <TextField
+                  label="Student age"
+                  name="studentAge"
+                  type="number"
+                  required
+                />
+                <TextField label="Student school" name="studentSchool" />
+                <SelectField
+                  label="Instrument needed"
+                  name="instrumentNeeded"
+                  options={programInstrumentOptions}
+                  required
+                />
+                <TextField
+                  label="Current instrument size, if known"
+                  name="currentInstrumentSize"
+                  placeholder="1/2 violin, 15 inch viola, 3/4 cello..."
+                />
+                <TextField
+                  label="Current playing level / years studied"
+                  name="playingLevel"
+                  required
+                />
+                <SelectField
+                  label="Does the student take private lessons?"
+                  name="privateLessons"
+                  options={studentPrivateLessonOptions}
+                  required
+                />
+                <TextField
+                  label="Teacher name, optional"
+                  name="teacherName"
+                />
+                <TextField
+                  label="How soon is the instrument needed?"
+                  name="timeline"
+                  required
+                />
+              </div>
+              <TextAreaField
+                label="Briefly describe the need or circumstance"
+                name="loanNeed"
+                rows={4}
+                required
+              />
+              <TextAreaField
+                label="Anything else I should know?"
+                name="loanDetails"
+                rows={4}
+              />
+            </div>
+          ) : null}
+
+          {programType === "instrument-donation" ? (
+            <div className="space-y-7 border border-gold/20 bg-espresso/25 p-4 sm:p-5">
+              <p className="text-xs uppercase tracking-[0.24em] text-gold/80">
+                Instrument Donation
+              </p>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <TextField label="Donor name" name="donorName" />
+                <SelectField
+                  label="Instrument type"
+                  name="donationItem"
+                  options={donationItemOptions}
+                  required
+                />
+                <TextField
+                  label="Instrument size, if known"
+                  name="donationInstrumentSize"
+                />
+                <SelectField
+                  label="Instrument condition"
+                  name="instrumentCondition"
+                  options={instrumentConditionOptions}
+                  required
+                />
+                <SelectField
+                  label="Does it include a bow/case?"
+                  name="includesBowCase"
+                  options={bowCaseOptions}
+                />
+                <TextField
+                  label="Brand/maker/label, if known"
+                  name="brandMaker"
+                />
+                <TextField
+                  label="City/state where the instrument is located"
+                  name="instrumentLocation"
+                  required
+                />
+              </div>
+              <p className="border border-gold/20 bg-gold/10 px-4 py-3 text-sm leading-6 text-ivory-muted">
+                You may describe the instrument here. I may ask for photos by
+                email.
+              </p>
+              <TextAreaField
+                label="Additional details"
+                name="instrumentDetails"
+                rows={5}
+              />
+            </div>
+          ) : null}
+
+          {programType === "money" ? (
+            <div className="space-y-7 border border-gold/20 bg-espresso/25 p-4 sm:p-5">
+              <p className="text-xs uppercase tracking-[0.24em] text-gold/80">
+                Instrument Fund Support
+              </p>
+              <SelectField
+                label="Preferred support type"
+                name="supportType"
+                options={supportTypeOptions}
+                required
+              />
+              <SelectField
+                label="Optional amount range"
+                name="amountRange"
+                options={amountRangeOptions}
+              />
+              <TextAreaField label="Message, optional" name="supportMessage" />
+              <p className="border border-gold/20 bg-gold/10 px-4 py-3 text-sm leading-6 text-ivory-muted">
+                No direct payment link is configured for this program yet, so
+                this will be sent as an inquiry.
+              </p>
+              <RequiredCheckbox
+                name="contributionAcknowledgment"
+                label="I understand that Winspiration Studio is not currently a registered nonprofit organization and contributions may not be tax-deductible."
+              />
+            </div>
+          ) : null}
+
+          <TextAreaField
+            label="Message / additional details"
+            name="message"
+            rows={5}
+            required={programType === "other"}
+          />
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 export function Inquiry() {
   const [selectedType, setSelectedType] =
     useState<InquiryType | null>(null);
   const [submittedType, setSubmittedType] = useState<InquiryType | null>(null);
   const [captchaError, setCaptchaError] = useState("");
+  const [submitError, setSubmitError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setSelectedType(normalizeInquiryType(params.get("type")));
   }, []);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedType) {
       return;
     }
 
-    const formData = new FormData(event.currentTarget);
+    if (isSubmitting) {
+      return;
+    }
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const captchaAnswer = String(formData.get("captchaAnswer") || "")
       .trim()
       .toLowerCase();
@@ -596,11 +983,50 @@ export function Inquiry() {
     if (captchaAnswer !== captchaChallenges[selectedType].answer) {
       setCaptchaError("Please check the captcha answer and try again.");
       setSubmittedType(null);
+      setSuccessMessage("");
+      setSubmitError("");
       return;
     }
 
     setCaptchaError("");
-    setSubmittedType(selectedType);
+    setSubmitError("");
+    setSuccessMessage("");
+    setSubmittedType(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        body: formData,
+      });
+      const result = (await response.json().catch(() => null)) as {
+        success?: boolean;
+        message?: string;
+        error?: string;
+      } | null;
+
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.error || "Unable to send this inquiry right now.",
+        );
+      }
+
+      setSuccessMessage(
+        result.message ||
+          "Thank you. Your inquiry has been sent. I'll review it and follow up directly.",
+      );
+      setSubmittedType(selectedType);
+      form.reset();
+    } catch (error) {
+      setSubmittedType(null);
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Unable to send this inquiry right now.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -633,6 +1059,8 @@ export function Inquiry() {
                     setSelectedType(isSelected ? null : option.id);
                     setSubmittedType(null);
                     setCaptchaError("");
+                    setSubmitError("");
+                    setSuccessMessage("");
                   }}
                   className="flex w-full items-center justify-between gap-5 px-5 py-5 text-left transition hover:bg-ivory/[0.04] sm:px-7"
                 >
@@ -672,11 +1100,16 @@ export function Inquiry() {
                           selectedType={option.id}
                           submittedType={submittedType}
                           captchaError={captchaError}
+                          submitError={submitError}
+                          successMessage={successMessage}
+                          isSubmitting={isSubmitting}
                           onSubmit={handleSubmit}
                           onClose={() => {
                             setSelectedType(null);
                             setSubmittedType(null);
                             setCaptchaError("");
+                            setSubmitError("");
+                            setSuccessMessage("");
                           }}
                         />
                       ) : null}

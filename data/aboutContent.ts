@@ -78,16 +78,18 @@ export const defaultAboutContent: AboutContentData = {
   },
   instrumentLoan: {
     eyebrow: "Education & Access",
-    title: "Winspiration Studio Instrument Loan Program",
+    title: "Winspiration Studio Instrument Loan and Support Program",
     body: [
-      "One of the most meaningful parts of my work is helping young musicians gain access to instruments that truly support their growth.",
-      "Through my instrument fund, I help students access properly set-up violins and violas when cost would otherwise stand in the way. Donations help cover instruments, repairs, bows, cases, strings, and maintenance so students can learn on equipment that supports their progress instead of limiting it.",
+      "Purpose: The Winspiration Studio Instrument Loan and Support Program helps motivated K-12 string students access appropriately sized, well-maintained instruments when financial hardship, family circumstances, or the need for an upgraded instrument creates a barrier to continued musical growth.",
+      "This program is intended for students in Minnesota, Iowa, and Wisconsin, with preference given to applicants within approximately 150 miles of the Twin Cities.",
+      "Instrument loans are considered for students who are currently in K-12, play violin, viola, or cello, have demonstrated ongoing interest and experience in music study, take regular private lessons, have financial need or hardship, and need an appropriate instrument or an upgraded instrument that better matches their current level of playing.",
+      "Loaned instruments must be cared for responsibly and returned in good condition, normal wear excepted. A written loan agreement is required before any instrument is released. For students under 18, a parent or guardian must sign the agreement.",
     ],
-    buttonLabel: "Ask About Instrument Loans",
-    buttonHref: "/contact?type=teaching",
+    buttonLabel: "Ask About the Program",
+    buttonHref: "/contact?type=instrument-program#inquiry",
     linkText:
-      "Interested in donating an instrument or asking a question? Contact me here.",
-    linkHref: "/contact#inquiry",
+      "Use the program inquiry form to request a loan, offer an instrument, or ask about support contributions.",
+    linkHref: "/contact?type=instrument-program#inquiry",
   },
   photos: [],
 };

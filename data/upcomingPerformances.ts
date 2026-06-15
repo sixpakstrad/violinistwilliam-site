@@ -1,3 +1,5 @@
+export type EventVisibility = "public" | "private" | "hidden";
+
 export type UpcomingPerformance = {
   id: string;
   eventTitle: string;
@@ -8,6 +10,8 @@ export type UpcomingPerformance = {
   city: string;
   state: string;
   isPublic: boolean;
+  visibility: EventVisibility;
+  privateEventLabel: string;
   ticketUrl: string;
   shortDescription: string;
   featured: boolean;
@@ -27,6 +31,8 @@ export function createUpcomingPerformance(): UpcomingPerformance {
     city: "",
     state: "MN",
     isPublic: true,
+    visibility: "public",
+    privateEventLabel: "Private Event",
     ticketUrl: "",
     shortDescription: "",
     featured: false,
@@ -48,6 +54,13 @@ export function normalizeUpcomingPerformance(
     city: value?.city || "",
     state: value?.state || "",
     isPublic: value?.isPublic ?? true,
+    visibility:
+      value?.visibility === "private" || value?.visibility === "hidden"
+        ? value.visibility
+        : value?.isPublic === false
+          ? "private"
+          : "public",
+    privateEventLabel: value?.privateEventLabel || "Private Event",
     ticketUrl: value?.ticketUrl || "",
     shortDescription: value?.shortDescription || "",
     featured: value?.featured ?? false,

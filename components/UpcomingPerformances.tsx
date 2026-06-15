@@ -2,31 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Reveal } from "@/components/Reveal";
-import { adminStorageKeys } from "@/data/adminContent";
 import {
   defaultUpcomingPerformances,
-  normalizeUpcomingPerformance,
   type UpcomingPerformance,
 } from "@/data/upcomingPerformances";
 
-function readUpcomingPerformances() {
-  try {
-    const raw = window.localStorage.getItem(adminStorageKeys.upcomingPerformances);
-    const parsed = raw
-      ? (JSON.parse(raw) as Partial<UpcomingPerformance>[])
-      : defaultUpcomingPerformances;
-
-    if (!Array.isArray(parsed)) {
-      return defaultUpcomingPerformances;
-    }
-
-    return parsed.map((event, index) =>
-      normalizeUpcomingPerformance(event, index),
-    );
-  } catch {
-    return defaultUpcomingPerformances;
-  }
-}
+const eventsPerPage = 10;
 
 function formatEventDate(value: string) {
   if (!value) {
@@ -62,15 +43,75 @@ export function UpcomingPerformances() {
   const [events, setEvents] = useState<UpcomingPerformance[]>(
     defaultUpcomingPerformances,
   );
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const [eventsError, setEventsError] = useState("");
+  const [eventPage, setEventPage] = useState(1);
 
   useEffect(() => {
-    setEvents(readUpcomingPerformances());
+    let isMounted = true;
+
+    async function loadEvents() {
+      try {
+        const response = await fetch("/api/upcoming-events", {
+          cache: "no-store",
+        });
+        const result = (await response.json()) as {
+          events?: UpcomingPerformance[];
+          error?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(result.error || "Unable to load upcoming events.");
+        }
+
+        if (isMounted) {
+          setEvents(Array.isArray(result.events) ? result.events : []);
+          setEventsError("");
+        }
+      } catch (error) {
+        console.error("Unable to load upcoming events:", error);
+        if (isMounted) {
+          setEvents([]);
+          setEventsError(
+            error instanceof Error
+              ? error.message
+              : "Unable to load upcoming events.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingEvents(false);
+        }
+      }
+    }
+
+    loadEvents();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const publicEvents = useMemo(
-    () => events.filter((event) => event.published && event.isPublic),
+  const visibleEvents = useMemo(
+    () =>
+      events.filter(
+        (event) =>
+          event.published &&
+          (event.visibility === "public" || event.visibility === "private"),
+      ),
     [events],
   );
+  const pageCount = Math.max(1, Math.ceil(visibleEvents.length / eventsPerPage));
+  const currentPage = Math.min(eventPage, pageCount);
+  const pageStart = (currentPage - 1) * eventsPerPage;
+  const paginatedEvents = visibleEvents.slice(
+    pageStart,
+    pageStart + eventsPerPage,
+  );
+
+  useEffect(() => {
+    setEventPage((page) => Math.min(page, pageCount));
+  }, [pageCount]);
 
   return (
     <section
@@ -92,55 +133,110 @@ export function UpcomingPerformances() {
           delay={0.1}
           className="elegant-surface border border-ivory/10 p-6 sm:p-9 lg:p-12"
         >
-          {publicEvents.length ? (
-            <div className="grid gap-4">
-              {publicEvents.map((event) => (
-                <article
-                  key={event.id}
-                  className={`border px-5 py-5 ${
-                    event.featured
-                      ? "border-gold/45 bg-gold/10"
-                      : "border-ivory/10 bg-espresso/45"
-                  }`}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.22em] text-gold/80">
-                        {formatEventDate(event.date)}
-                        {" · "}
-                        {formatEventTime(event)}
-                      </p>
-                      <h3 className="mt-3 font-display text-3xl leading-tight text-ivory">
-                        {event.eventTitle}
-                      </h3>
-                    </div>
-                    {event.featured ? (
-                      <span className="border border-gold/40 px-3 py-2 text-[0.65rem] uppercase tracking-[0.18em] text-gold">
-                        Featured
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-3 text-sm uppercase tracking-[0.16em] text-ivory-muted">
-                    {[event.venueName, event.city, event.state]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                  {event.shortDescription ? (
-                    <p className="mt-4 text-base leading-7 text-ivory-muted">
-                      {event.shortDescription}
-                    </p>
-                  ) : null}
-                  {event.ticketUrl ? (
-                    <a
-                      href={event.ticketUrl}
-                      className="mt-5 inline-flex min-h-11 items-center justify-center border border-gold/40 px-5 text-xs font-medium uppercase tracking-[0.18em] text-ivory transition hover:border-gold hover:bg-gold/10"
+          {isLoadingEvents ? (
+            <p className="text-lg leading-8 text-ivory-muted">
+              Loading upcoming performances...
+            </p>
+          ) : eventsError ? (
+            <p className="border border-gold/20 bg-gold/10 px-5 py-4 text-sm leading-7 text-gold">
+              {eventsError}
+            </p>
+          ) : visibleEvents.length ? (
+            <>
+              <div className="grid gap-4">
+                {paginatedEvents.map((event) =>
+                  event.visibility === "private" ? (
+                    <article
+                      key={event.id}
+                      className="border border-ivory/10 bg-espresso/35 px-4 py-3"
                     >
-                      Event Info
-                    </a>
-                  ) : null}
-                </article>
-              ))}
-            </div>
+                      <p className="text-sm leading-6 text-ivory-muted">
+                        <span className="text-ivory">
+                          {formatEventDate(event.date)}
+                        </span>{" "}
+                        — Private Event:{" "}
+                        {event.privateEventLabel || event.eventTitle || "Private Event"}
+                      </p>
+                    </article>
+                  ) : (
+                    <article
+                      key={event.id}
+                      className={`border px-5 py-5 ${
+                        event.featured
+                          ? "border-gold/45 bg-gold/10"
+                          : "border-ivory/10 bg-espresso/45"
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.22em] text-gold/80">
+                            {formatEventDate(event.date)}
+                            {" · "}
+                            {formatEventTime(event)}
+                          </p>
+                          <h3 className="mt-3 font-display text-3xl leading-tight text-ivory">
+                            {event.eventTitle}
+                          </h3>
+                        </div>
+                        {event.featured ? (
+                          <span className="border border-gold/40 px-3 py-2 text-[0.65rem] uppercase tracking-[0.18em] text-gold">
+                            Featured
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-3 text-sm uppercase tracking-[0.16em] text-ivory-muted">
+                        {[event.venueName, event.city, event.state]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                      {event.shortDescription ? (
+                        <p className="mt-4 text-base leading-7 text-ivory-muted">
+                          {event.shortDescription}
+                        </p>
+                      ) : null}
+                      {event.ticketUrl ? (
+                        <a
+                          href={event.ticketUrl}
+                          className="mt-5 inline-flex min-h-11 items-center justify-center border border-gold/40 px-5 text-xs font-medium uppercase tracking-[0.18em] text-ivory transition hover:border-gold hover:bg-gold/10"
+                        >
+                          Event Info
+                        </a>
+                      ) : null}
+                    </article>
+                  ),
+                )}
+              </div>
+
+              {visibleEvents.length > eventsPerPage ? (
+                <div className="mt-7 flex flex-col gap-4 border-t border-ivory/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm leading-7 text-ivory-muted">
+                    Showing {pageStart + 1}-
+                    {Math.min(pageStart + eventsPerPage, visibleEvents.length)}{" "}
+                    of {visibleEvents.length} performances
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEventPage((page) => Math.max(1, page - 1))}
+                      disabled={currentPage === 1}
+                      className="border border-ivory/10 px-3 py-2 text-xs uppercase tracking-[0.16em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory disabled:cursor-not-allowed disabled:opacity-35"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEventPage((page) => Math.min(pageCount, page + 1))
+                      }
+                      disabled={currentPage === pageCount}
+                      className="border border-ivory/10 px-3 py-2 text-xs uppercase tracking-[0.16em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory disabled:cursor-not-allowed disabled:opacity-35"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </>
           ) : (
             <>
               <p className="text-lg leading-8 text-ivory-muted">

@@ -142,6 +142,30 @@ async function fetchAdminSongs() {
   return data.songs.map((song, index) => normalizeSong(song, index));
 }
 
+async function fetchAdminUpcomingEvents() {
+  const response = await fetch("/api/admin/upcoming-events", {
+    cache: "no-store",
+  });
+  const data = (await response.json().catch(() => ({}))) as {
+    events?: Partial<UpcomingPerformance>[];
+    error?: string;
+  };
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || `Upcoming event load failed with status ${response.status}`,
+    );
+  }
+
+  if (!Array.isArray(data.events)) {
+    throw new Error("Upcoming event load did not return an events array.");
+  }
+
+  return data.events.map((event, index) =>
+    normalizeUpcomingPerformance(event, index),
+  );
+}
+
 function normalizeStory(story: StoredStoryEntry, index: number): StoryEntry {
   const rawBody = Array.isArray(story.body)
     ? story.body
@@ -2149,6 +2173,11 @@ export function AdminDashboard() {
   const [upcomingPerformances, setUpcomingPerformances] = useState<
     UpcomingPerformance[]
   >(defaultUpcomingPerformances);
+  const [upcomingLoadedFromSupabase, setUpcomingLoadedFromSupabase] =
+    useState(false);
+  const [deletedUpcomingEventIds, setDeletedUpcomingEventIds] = useState<
+    string[]
+  >([]);
   const [siteDetails, setSiteDetails] =
     useState<SiteDetails>(defaultSiteDetails);
   const [pageHeroContent, setPageHeroContent] =
@@ -2194,20 +2223,6 @@ export function AdminDashboard() {
       readStoredValue(adminStorageKeys.rateGuides, defaultRateGuides),
     );
     setAddOns(readStoredValue(adminStorageKeys.addOns, defaultAddOns));
-    const storedUpcomingPerformances = readStoredValue<unknown>(
-      adminStorageKeys.upcomingPerformances,
-      defaultUpcomingPerformances,
-    );
-    setUpcomingPerformances(
-      Array.isArray(storedUpcomingPerformances)
-        ? storedUpcomingPerformances.map((event, index) =>
-            normalizeUpcomingPerformance(
-              event as Partial<UpcomingPerformance>,
-              index,
-            ),
-          )
-        : defaultUpcomingPerformances,
-    );
     setSiteDetails(
       normalizeSiteDetails(
         readStoredValue(adminStorageKeys.siteDetails, defaultSiteDetails),
@@ -2267,6 +2282,36 @@ export function AdminDashboard() {
     }
 
     loadSongs();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadUpcomingEvents() {
+      try {
+        const supabaseEvents = await fetchAdminUpcomingEvents();
+        if (isMounted) {
+          setUpcomingPerformances(supabaseEvents);
+          setUpcomingLoadedFromSupabase(true);
+          setDeletedUpcomingEventIds([]);
+        }
+      } catch (error) {
+        console.error("Unable to load upcoming events from Supabase:", error);
+        if (isMounted) {
+          const message =
+            error instanceof Error ? error.message : "Unknown Supabase error";
+          setUpcomingLoadedFromSupabase(false);
+          setSaveMessage(`Could not load Supabase upcoming events: ${message}`);
+          window.setTimeout(() => setSaveMessage(""), 8000);
+        }
+      }
+    }
+
+    loadUpcomingEvents();
 
     return () => {
       isMounted = false;
@@ -3265,18 +3310,65 @@ export function AdminDashboard() {
     showSaved("Pricing reset to the original website content.");
   };
 
-  const saveUpcomingPerformances = () => {
-    saveStoredValue(
-      adminStorageKeys.upcomingPerformances,
-      upcomingPerformances,
-    );
-    showSaved("Upcoming performances saved in this browser.");
+  const saveUpcomingPerformances = async () => {
+    if (!upcomingLoadedFromSupabase) {
+      showSaved("Upcoming events are not loaded from Supabase yet. Save was not sent.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/admin/upcoming-events", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          events: upcomingPerformances,
+          deletedIds: deletedUpcomingEventIds,
+        }),
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        events?: Partial<UpcomingPerformance>[];
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(result.error || "Upcoming events save failed.");
+      }
+
+      const nextEvents = Array.isArray(result.events)
+        ? result.events.map((event, index) =>
+            normalizeUpcomingPerformance(event, index),
+          )
+        : upcomingPerformances;
+
+      setUpcomingPerformances(nextEvents);
+      setDeletedUpcomingEventIds([]);
+      setUpcomingLoadedFromSupabase(true);
+      showSaved("Upcoming performances saved to Supabase.");
+    } catch (error) {
+      console.error("Unable to save upcoming events:", error);
+      showSaved(
+        error instanceof Error
+          ? error.message
+          : "Upcoming performances could not be saved.",
+      );
+    }
   };
 
-  const resetUpcomingPerformances = () => {
-    setUpcomingPerformances(defaultUpcomingPerformances);
-    window.localStorage.removeItem(adminStorageKeys.upcomingPerformances);
-    showSaved("Upcoming performances reset.");
+  const resetUpcomingPerformances = async () => {
+    try {
+      const supabaseEvents = await fetchAdminUpcomingEvents();
+      setUpcomingPerformances(supabaseEvents);
+      setDeletedUpcomingEventIds([]);
+      setUpcomingLoadedFromSupabase(true);
+      showSaved("Upcoming performances reloaded from Supabase.");
+    } catch (error) {
+      console.error("Unable to reload upcoming events:", error);
+      showSaved(
+        error instanceof Error
+          ? error.message
+          : "Could not reload upcoming performances from Supabase.",
+      );
+    }
   };
 
   const addUpcomingPerformance = () => {
@@ -3293,12 +3385,35 @@ export function AdminDashboard() {
   ) => {
     setUpcomingPerformances((currentEvents) =>
       currentEvents.map((event, eventIndex) =>
-        eventIndex === index ? { ...event, [field]: value } : event,
+        eventIndex === index
+          ? {
+              ...event,
+              [field]: value,
+              ...(field === "visibility"
+                ? { isPublic: value === "public" }
+                : {}),
+            }
+          : event,
       ),
     );
   };
 
   const removeUpcomingPerformance = (index: number) => {
+    const event = upcomingPerformances[index];
+    if (!event) {
+      return;
+    }
+
+    if (!window.confirm(`Delete "${event.eventTitle || "this event"}"? Save Events will permanently remove it from Supabase.`)) {
+      return;
+    }
+
+    if (event.id && !event.id.startsWith("performance-")) {
+      setDeletedUpcomingEventIds((currentIds) =>
+        currentIds.includes(event.id) ? currentIds : [...currentIds, event.id],
+      );
+    }
+
     setUpcomingPerformances((currentEvents) =>
       currentEvents.filter((_, eventIndex) => eventIndex !== index),
     );
@@ -4853,8 +4968,14 @@ export function AdminDashboard() {
                 </p>
                 <p className="text-sm leading-7 text-ivory-muted">
                   Add public concerts, restaurant appearances, featured events,
-                  and seasonal performances. The public site only shows events
-                  that are both public and published.
+                  private bookings, and seasonal performances. Supabase is the
+                  source of truth; the public site shows published future
+                  events automatically by date and time.
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ivory-muted/70">
+                  {upcomingLoadedFromSupabase
+                    ? "Loaded from Supabase"
+                    : "Supabase events not loaded"}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -4877,7 +4998,7 @@ export function AdminDashboard() {
                   onClick={resetUpcomingPerformances}
                   className="border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory"
                 >
-                  Reset
+                  Reload
                 </button>
               </div>
             </div>
@@ -4904,24 +5025,21 @@ export function AdminDashboard() {
                         <h3 className="mt-2 font-display text-3xl text-ivory">
                           {event.eventTitle || "Untitled Performance"}
                         </h3>
+                        <p className="mt-2 flex flex-wrap gap-2 text-[0.65rem] uppercase tracking-[0.16em]">
+                          <span className="border border-ivory/10 px-2 py-1 text-ivory-muted">
+                            {event.visibility}
+                          </span>
+                          <span className="border border-ivory/10 px-2 py-1 text-ivory-muted">
+                            {event.published ? "Published" : "Unpublished"}
+                          </span>
+                          {event.featured ? (
+                            <span className="border border-gold/35 px-2 py-1 text-gold">
+                              Featured
+                            </span>
+                          ) : null}
+                        </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => moveUpcomingPerformance(index, -1)}
-                          disabled={index === 0}
-                          className="border border-ivory/10 px-3 py-2 text-xs uppercase tracking-[0.16em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          Up
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveUpcomingPerformance(index, 1)}
-                          disabled={index === upcomingPerformances.length - 1}
-                          className="border border-ivory/10 px-3 py-2 text-xs uppercase tracking-[0.16em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          Down
-                        </button>
                         <button
                           type="button"
                           onClick={() => removeUpcomingPerformance(index)}
@@ -4985,6 +5103,38 @@ export function AdminDashboard() {
                           updateUpcomingPerformance(index, "state", value)
                         }
                       />
+                      <label className="block">
+                        <span className="mb-3 block text-xs uppercase tracking-[0.22em] text-gold/80">
+                          Visibility
+                        </span>
+                        <select
+                          value={event.visibility}
+                          onChange={(changeEvent) =>
+                            updateUpcomingPerformance(
+                              index,
+                              "visibility",
+                              changeEvent.target.value as UpcomingPerformance["visibility"],
+                            )
+                          }
+                          className="min-h-12 w-full border border-ivory/10 bg-espresso/45 px-4 text-ivory outline-none transition focus:border-gold/70"
+                        >
+                          <option value="public">Public</option>
+                          <option value="private">Private</option>
+                          <option value="hidden">Hidden</option>
+                        </select>
+                      </label>
+                      <SettingsInput
+                        label="Private Event Label"
+                        value={event.privateEventLabel}
+                        onChange={(value) =>
+                          updateUpcomingPerformance(
+                            index,
+                            "privateEventLabel",
+                            value,
+                          )
+                        }
+                        placeholder="Wedding, Marriage Proposal, Private Dinner..."
+                      />
                     </div>
 
                     <SettingsInput
@@ -5009,14 +5159,7 @@ export function AdminDashboard() {
                       rows={3}
                     />
 
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <SettingsToggle
-                        label="Public Event"
-                        checked={event.isPublic}
-                        onChange={(value) =>
-                          updateUpcomingPerformance(index, "isPublic", value)
-                        }
-                      />
+                    <div className="grid gap-3 md:grid-cols-2">
                       <SettingsToggle
                         label="Featured Event"
                         checked={event.featured}

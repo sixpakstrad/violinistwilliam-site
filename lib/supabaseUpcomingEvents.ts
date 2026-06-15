@@ -30,6 +30,8 @@ type SupabaseUpcomingEventRow = {
   updated_at?: string | null;
 };
 
+const upcomingPerformancesTable = "upcoming_performances";
+
 function getSupabaseConfig() {
   const supabaseUrl =
     process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -133,7 +135,7 @@ function eventToRow(event: UpcomingPerformance): SupabaseUpcomingEventRow {
     visibility: normalizedEvent.visibility,
     private_event_label: normalizedEvent.privateEventLabel,
     is_featured: normalizedEvent.featured,
-    is_published: normalizedEvent.published,
+    is_published: true,
   };
 }
 
@@ -159,7 +161,7 @@ export function mapSupabaseEventToUpcomingPerformance(
       ticketUrl: normalizeText(row.ticket_url),
       shortDescription: normalizeText(row.description),
       featured: Boolean(row.is_featured),
-      published: Boolean(row.is_published),
+      published: true,
     },
     index,
   );
@@ -174,14 +176,13 @@ export async function readSupabaseUpcomingEvents(options: {
   ];
 
   if (options.publicOnly) {
-    queryParts.push("is_published=eq.true");
     queryParts.push("visibility=in.(public,private)");
     queryParts.push(`event_date=gte.${todayIsoDate()}`);
   }
 
   const rows =
     (await supabaseRest<SupabaseUpcomingEventRow[]>(
-      "upcoming_events",
+      upcomingPerformancesTable,
       { query: `?${queryParts.join("&")}` },
     )) || [];
 
@@ -195,7 +196,7 @@ export async function saveSupabaseUpcomingEvents(events: UpcomingPerformance[]) 
   const rowsToUpsert = rows.filter((row) => row.id);
 
   if (rowsToInsert.length > 0) {
-    await supabaseRest("upcoming_events", {
+    await supabaseRest(upcomingPerformancesTable, {
       method: "POST",
       headers: { Prefer: "return=minimal" },
       body: rowsToInsert,
@@ -203,7 +204,7 @@ export async function saveSupabaseUpcomingEvents(events: UpcomingPerformance[]) 
   }
 
   if (rowsToUpsert.length > 0) {
-    await supabaseRest("upcoming_events", {
+    await supabaseRest(upcomingPerformancesTable, {
       method: "POST",
       query: "?on_conflict=id",
       headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
@@ -225,7 +226,7 @@ export async function deleteSupabaseUpcomingEvents(ids: string[]) {
     .map((id) => `"${id.replace(/"/g, '\\"')}"`)
     .join(",");
 
-  await supabaseRest("upcoming_events", {
+  await supabaseRest(upcomingPerformancesTable, {
     method: "DELETE",
     query: `?id=in.(${quotedIds})`,
   });

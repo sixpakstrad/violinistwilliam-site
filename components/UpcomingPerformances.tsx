@@ -96,7 +96,6 @@ export function UpcomingPerformances() {
     () =>
       events.filter(
         (event) =>
-          event.published &&
           (event.visibility === "public" || event.visibility === "private"),
       ),
     [events],
@@ -154,8 +153,19 @@ export function UpcomingPerformances() {
                         <span className="text-ivory">
                           {formatEventDate(event.date)}
                         </span>{" "}
+                        · {formatEventTime(event)}
+                        {[event.city, event.state].filter(Boolean).length ? (
+                          <>
+                            {" "}
+                            · {[event.city, event.state]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </>
+                        ) : null}{" "}
                         — Private Event:{" "}
-                        {event.privateEventLabel || event.eventTitle || "Private Event"}
+                        {event.privateEventLabel ||
+                          event.eventTitle ||
+                          "Private Event"}
                       </p>
                     </article>
                   ) : (
@@ -247,7 +257,7 @@ export function UpcomingPerformances() {
               </p>
               <div className="mt-8 border border-ivory/10 bg-espresso/45 px-5 py-5">
                 <p className="text-sm uppercase tracking-[0.16em] text-ivory-muted">
-                  No public performances are currently published.
+                  No upcoming performances are currently listed.
                 </p>
               </div>
               <a

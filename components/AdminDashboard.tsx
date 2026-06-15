@@ -2178,6 +2178,8 @@ export function AdminDashboard() {
   const [deletedUpcomingEventIds, setDeletedUpcomingEventIds] = useState<
     string[]
   >([]);
+  const [upcomingSaveMessage, setUpcomingSaveMessage] = useState("");
+  const [isSavingUpcomingEvents, setIsSavingUpcomingEvents] = useState(false);
   const [siteDetails, setSiteDetails] =
     useState<SiteDetails>(defaultSiteDetails);
   const [pageHeroContent, setPageHeroContent] =
@@ -3312,9 +3314,15 @@ export function AdminDashboard() {
 
   const saveUpcomingPerformances = async () => {
     if (!upcomingLoadedFromSupabase) {
-      showSaved("Upcoming events are not loaded from Supabase yet. Save was not sent.");
+      const message =
+        "Upcoming performances are not loaded from Supabase yet. Save was not sent.";
+      setUpcomingSaveMessage(message);
+      showSaved(message);
       return;
     }
+
+    setIsSavingUpcomingEvents(true);
+    setUpcomingSaveMessage("Saving upcoming performances...");
 
     try {
       const response = await fetch("/api/admin/upcoming-events", {
@@ -3343,31 +3351,39 @@ export function AdminDashboard() {
       setUpcomingPerformances(nextEvents);
       setDeletedUpcomingEventIds([]);
       setUpcomingLoadedFromSupabase(true);
+      setUpcomingSaveMessage("Upcoming performances saved to Supabase.");
       showSaved("Upcoming performances saved to Supabase.");
     } catch (error) {
       console.error("Unable to save upcoming events:", error);
-      showSaved(
+      const message =
         error instanceof Error
           ? error.message
-          : "Upcoming performances could not be saved.",
-      );
+          : "Upcoming performances could not be saved.";
+      setUpcomingSaveMessage(message);
+      showSaved(message);
+    } finally {
+      setIsSavingUpcomingEvents(false);
     }
   };
 
   const resetUpcomingPerformances = async () => {
+    setUpcomingSaveMessage("Reloading upcoming performances...");
+
     try {
       const supabaseEvents = await fetchAdminUpcomingEvents();
       setUpcomingPerformances(supabaseEvents);
       setDeletedUpcomingEventIds([]);
       setUpcomingLoadedFromSupabase(true);
+      setUpcomingSaveMessage("Upcoming performances reloaded from Supabase.");
       showSaved("Upcoming performances reloaded from Supabase.");
     } catch (error) {
       console.error("Unable to reload upcoming events:", error);
-      showSaved(
+      const message =
         error instanceof Error
           ? error.message
-          : "Could not reload upcoming performances from Supabase.",
-      );
+          : "Could not reload upcoming performances from Supabase.";
+      setUpcomingSaveMessage(message);
+      showSaved(message);
     }
   };
 
@@ -4969,8 +4985,9 @@ export function AdminDashboard() {
                 <p className="text-sm leading-7 text-ivory-muted">
                   Add public concerts, restaurant appearances, featured events,
                   private bookings, and seasonal performances. Supabase is the
-                  source of truth; the public site shows published future
-                  events automatically by date and time.
+                  source of truth; the public site shows future public/private
+                  performances automatically by date and time. Choose Hidden
+                  when a saved event should not appear publicly.
                 </p>
                 <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ivory-muted/70">
                   {upcomingLoadedFromSupabase
@@ -4989,9 +5006,10 @@ export function AdminDashboard() {
                 <button
                   type="button"
                   onClick={saveUpcomingPerformances}
-                  className="bg-ivory px-4 py-3 text-xs uppercase tracking-[0.18em] text-espresso transition hover:bg-gold"
+                  disabled={isSavingUpcomingEvents}
+                  className="bg-ivory px-4 py-3 text-xs uppercase tracking-[0.18em] text-espresso transition hover:bg-gold disabled:cursor-wait disabled:opacity-60"
                 >
-                  Save Events
+                  {isSavingUpcomingEvents ? "Saving..." : "Save Events"}
                 </button>
                 <button
                   type="button"
@@ -5002,6 +5020,11 @@ export function AdminDashboard() {
                 </button>
               </div>
             </div>
+            {upcomingSaveMessage ? (
+              <p className="elegant-surface border border-gold/20 bg-gold/10 px-4 py-3 text-sm leading-7 text-gold">
+                {upcomingSaveMessage}
+              </p>
+            ) : null}
 
             {upcomingPerformances.length === 0 ? (
               <div className="elegant-surface border border-ivory/10 p-6">
@@ -5028,9 +5051,6 @@ export function AdminDashboard() {
                         <p className="mt-2 flex flex-wrap gap-2 text-[0.65rem] uppercase tracking-[0.16em]">
                           <span className="border border-ivory/10 px-2 py-1 text-ivory-muted">
                             {event.visibility}
-                          </span>
-                          <span className="border border-ivory/10 px-2 py-1 text-ivory-muted">
-                            {event.published ? "Published" : "Unpublished"}
                           </span>
                           {event.featured ? (
                             <span className="border border-gold/35 px-2 py-1 text-gold">
@@ -5159,19 +5179,12 @@ export function AdminDashboard() {
                       rows={3}
                     />
 
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-3 md:grid-cols-1">
                       <SettingsToggle
                         label="Featured Event"
                         checked={event.featured}
                         onChange={(value) =>
                           updateUpcomingPerformance(index, "featured", value)
-                        }
-                      />
-                      <SettingsToggle
-                        label="Published"
-                        checked={event.published}
-                        onChange={(value) =>
-                          updateUpcomingPerformance(index, "published", value)
                         }
                       />
                     </div>

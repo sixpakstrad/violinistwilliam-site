@@ -36,7 +36,7 @@ export function createUpcomingPerformance(): UpcomingPerformance {
     ticketUrl: "",
     shortDescription: "",
     featured: false,
-    published: false,
+    published: true,
   };
 }
 
@@ -64,6 +64,6 @@ export function normalizeUpcomingPerformance(
     ticketUrl: value?.ticketUrl || "",
     shortDescription: value?.shortDescription || "",
     featured: value?.featured ?? false,
-    published: value?.published ?? false,
+    published: true,
   };
 }

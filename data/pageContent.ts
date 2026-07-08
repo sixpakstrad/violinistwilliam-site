@@ -284,7 +284,7 @@ export const defaultSeoSettings: SeoSettings = {
       metaDescription:
         "Wedding, event, proposal, memorial, and private performance violin services with solo violin, duos, trios, and string quartets.",
       urlSlug: "/performances",
-      canonicalUrl: "https://violinistwilliam.com/performances",
+      canonicalUrl: "https://violinistwilliam.com/performances/",
       index: true,
       includeInSitemap: true,
       ogTitle: "Wedding and Event Violinist | William Samorey",
@@ -304,7 +304,7 @@ export const defaultSeoSettings: SeoSettings = {
       metaDescription:
         "Private violin lessons for beginner, intermediate, advanced, adult, and online students with William Samorey.",
       urlSlug: "/education",
-      canonicalUrl: "https://violinistwilliam.com/education",
+      canonicalUrl: "https://violinistwilliam.com/education/",
       index: true,
       includeInSitemap: true,
       ogTitle: "Private Violin Lessons | William Samorey",
@@ -324,7 +324,7 @@ export const defaultSeoSettings: SeoSettings = {
       metaDescription:
         "Browse William Samorey's violin song library for weddings, funerals, ceremonies, cocktail hours, and live event requests.",
       urlSlug: "/music",
-      canonicalUrl: "https://violinistwilliam.com/music",
+      canonicalUrl: "https://violinistwilliam.com/music/",
       index: true,
       includeInSitemap: true,
       ogTitle: "Violin Song Library | William Samorey",
@@ -344,7 +344,7 @@ export const defaultSeoSettings: SeoSettings = {
       metaDescription:
         "Learn about Twin Cities violinist William Samorey, his performance background, orchestral work, teaching, and instrument loan program.",
       urlSlug: "/about",
-      canonicalUrl: "https://violinistwilliam.com/about",
+      canonicalUrl: "https://violinistwilliam.com/about/",
       index: true,
       includeInSitemap: true,
       ogTitle: "About William Samorey | Violinist",
@@ -364,7 +364,7 @@ export const defaultSeoSettings: SeoSettings = {
       metaDescription:
         "Reflections from performances, teaching, repertoire, instruments, and the quiet work behind the music.",
       urlSlug: "/stories",
-      canonicalUrl: "https://violinistwilliam.com/stories",
+      canonicalUrl: "https://violinistwilliam.com/stories/",
       index: true,
       includeInSitemap: true,
       ogTitle: "Will’s Stories | William Samorey",
@@ -385,7 +385,7 @@ export const defaultSeoSettings: SeoSettings = {
         "Professional bow rehair, bow repair, setup, maintenance, and instrument care for violin, viola, cello, bass, and period-instrument bows.",
       urlSlug: "/bow-rehair-repair-instrument-care",
       canonicalUrl:
-        "https://violinistwilliam.com/bow-rehair-repair-instrument-care",
+        "https://violinistwilliam.com/bow-rehair-repair-instrument-care/",
       index: true,
       includeInSitemap: true,
       ogTitle: "Bow Rehair, Repair, and Instrument Care",
@@ -405,7 +405,7 @@ export const defaultSeoSettings: SeoSettings = {
       metaDescription:
         "Contact William Samorey for performance inquiries, teaching inquiries, bow repair, instrument setup, and instrument care.",
       urlSlug: "/contact",
-      canonicalUrl: "https://violinistwilliam.com/contact",
+      canonicalUrl: "https://violinistwilliam.com/contact/",
       index: true,
       includeInSitemap: true,
       ogTitle: "Contact William Samorey",
@@ -425,7 +425,7 @@ export const defaultSeoSettings: SeoSettings = {
       metaDescription:
         "Support student access to properly set-up violins and violas through William Samorey's instrument fund and loan program.",
       urlSlug: "/donate",
-      canonicalUrl: "https://violinistwilliam.com/donate",
+      canonicalUrl: "https://violinistwilliam.com/donate/",
       index: true,
       includeInSitemap: true,
       ogTitle: "Student Instrument Fund and Loan Program",

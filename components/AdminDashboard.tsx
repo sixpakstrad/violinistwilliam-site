@@ -26,7 +26,11 @@ import {
   type SeoPageSettings,
   type SeoSettings,
 } from "@/data/pageContent";
-import type { RepertoireSong } from "@/data/repertoire";
+import {
+  normalizeRepertoireGenre,
+  repertoireGenres,
+  type RepertoireSong,
+} from "@/data/repertoire";
 import { defaultAddOns, defaultRateGuides, type RateGuide } from "@/data/rates";
 import {
   defaultEducationContent,
@@ -87,6 +91,11 @@ type StoredRepertoireSong = Partial<RepertoireSong> & {
   funeral?: boolean;
   party?: boolean;
   request_fee?: boolean;
+  collection_1980s?: boolean;
+  collection_1990s?: boolean;
+  collection_2000s?: boolean;
+  collection_2010s_now?: boolean;
+  private_notes?: string;
 };
 type StoredStoryEntry = Omit<Partial<StoryEntry>, "body"> & {
   id?: string;
@@ -96,8 +105,8 @@ type StoredStoryEntry = Omit<Partial<StoryEntry>, "body"> & {
 function normalizeSong(song: StoredRepertoireSong | null, index: number): RepertoireSong {
   const category = song?.category || song?.source || "";
   const genres = Array.isArray(song?.genres)
-    ? song.genres.filter(Boolean)
-    : [song?.genre || category || "Pop"];
+    ? song.genres.map(normalizeRepertoireGenre).filter(Boolean)
+    : [normalizeRepertoireGenre(song?.genre || category || "Pop")].filter(Boolean);
   const isFavorite = song?.wills_favorite ?? song?.favoriteRecommended ?? false;
 
   return {
@@ -108,7 +117,7 @@ function normalizeSong(song: StoredRepertoireSong | null, index: number): Repert
     source: song?.source || category,
     genre: genres[0] || song?.genre || category || "Pop",
     genres,
-    notes: song?.notes || "",
+    notes: song?.notes || song?.private_notes || "",
     sheetMusic: song?.sheetMusic || song?.sheet_music_location || "",
     backingTrack: song?.backingTrack || song?.backing_track_location || "",
     url: song?.url || song?.reference_url || "",
@@ -118,6 +127,11 @@ function normalizeSong(song: StoredRepertoireSong | null, index: number): Repert
     partyRecommended: song?.partyRecommended ?? song?.party ?? false,
     wills_favorite: isFavorite,
     favoriteRecommended: isFavorite,
+    collection1980s: song?.collection1980s ?? song?.collection_1980s ?? false,
+    collection1990s: song?.collection1990s ?? song?.collection_1990s ?? false,
+    collection2000s: song?.collection2000s ?? song?.collection_2000s ?? false,
+    collection2010sNow:
+      song?.collection2010sNow ?? song?.collection_2010s_now ?? false,
     extraCharge: song?.extraCharge ?? song?.request_fee ?? false,
     is_public: song?.is_public ?? true,
     sort_order: song?.sort_order ?? null,
@@ -256,32 +270,16 @@ function saveStoredValue<T>(key: string, value: T) {
   window.localStorage.setItem(key, JSON.stringify(value));
 }
 
-const songEditorGenreOptions = [
-  "Classical",
-  "Movie/Game",
-  "Musical/Opera",
-  "Latin",
-  "Traditional",
-  "Pop",
-  "Rock/Metal",
-  "Oldies",
-  "R&B",
-  "Country",
-  "Dance/Techno",
-  "Jazz/Lounge",
-  "Sacred",
-  "Holiday",
-  "Other",
-];
+const songEditorGenreOptions: string[] = [...repertoireGenres];
 
 const songEditorGenreOptionSet = new Set<string>(songEditorGenreOptions);
 
 function getSongEditorGenres(song: RepertoireSong) {
   if (Array.isArray(song.genres) && song.genres.length > 0) {
-    return song.genres.filter(Boolean);
+    return song.genres.map(normalizeRepertoireGenre).filter(Boolean);
   }
 
-  return song.genre ? [song.genre] : [];
+  return song.genre ? [normalizeRepertoireGenre(song.genre)].filter(Boolean) : [];
 }
 
 function getGenreDropdownSummary(genres: string[]) {
@@ -382,6 +380,10 @@ function getExportSongTags(song: RepertoireSong) {
     song.funeralRecommended ? "Funeral" : "",
     song.partyRecommended ? "Party" : "",
     song.favoriteRecommended ? "Favorite" : "",
+    song.collection1980s ? "1980s" : "",
+    song.collection1990s ? "1990s" : "",
+    song.collection2000s ? "2000s" : "",
+    song.collection2010sNow ? "2010s - Now" : "",
     song.extraCharge ? "Request Fee" : "",
   ].filter(Boolean);
 }
@@ -2054,7 +2056,8 @@ function seoPreviewUrl(page: SeoPageSettings) {
   }
 
   const slug = page.urlSlug.startsWith("/") ? page.urlSlug : `/${page.urlSlug}`;
-  return `https://violinistwilliam.com${slug}`;
+  const canonicalSlug = slug === "/" || slug.endsWith("/") ? slug : `${slug}/`;
+  return `https://violinistwilliam.com${canonicalSlug}`;
 }
 
 function seoWarnings(page: SeoPageSettings) {
@@ -2583,6 +2586,10 @@ export function AdminDashboard() {
         partyRecommended: false,
         wills_favorite: false,
         favoriteRecommended: false,
+        collection1980s: false,
+        collection1990s: false,
+        collection2000s: false,
+        collection2010sNow: false,
         extraCharge: false,
         is_public: true,
         sort_order: null,
@@ -3722,7 +3729,7 @@ export function AdminDashboard() {
 
                       <fieldset>
                         <legend className="mb-2 block text-[0.65rem] uppercase tracking-[0.16em] text-gold/80">
-                          Event Tags
+                          Collections
                         </legend>
                         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
                           {[
@@ -3730,6 +3737,10 @@ export function AdminDashboard() {
                             ["funeralRecommended", "Funeral"],
                             ["partyRecommended", "Party"],
                             ["wills_favorite", "Favorite"],
+                            ["collection1980s", "1980s"],
+                            ["collection1990s", "1990s"],
+                            ["collection2000s", "2000s"],
+                            ["collection2010sNow", "2010s - Now"],
                             ["extraCharge", "Request Fee"],
                           ].map(([field, label]) => (
                             <label

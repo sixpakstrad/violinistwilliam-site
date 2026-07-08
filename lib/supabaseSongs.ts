@@ -1,18 +1,9 @@
-import type { RepertoireSong } from "@/data/repertoire";
+import {
+  normalizeRepertoireGenre,
+  type RepertoireSong,
+} from "@/data/repertoire";
 
-const publicSongColumns = [
-  "id",
-  "title",
-  "artist",
-  "category",
-  "genres",
-  "wedding",
-  "funeral",
-  "party",
-  "wills_favorite",
-  "request_fee",
-  "is_public",
-].join(",");
+const publicSongColumns = "*";
 
 export type SupabaseSongRow = {
   id?: string | number;
@@ -24,7 +15,13 @@ export type SupabaseSongRow = {
   funeral: boolean | null;
   party: boolean | null;
   wills_favorite: boolean | null;
+  collection_1980s?: boolean | null;
+  collection_1990s?: boolean | null;
+  collection_2000s?: boolean | null;
+  collection_2010s_now?: boolean | null;
   request_fee: boolean | null;
+  private_notes?: string | null;
+  notes?: string | null;
   sheet_music_location?: string | null;
   backing_track_location?: string | null;
   reference_url?: string | null;
@@ -49,7 +46,13 @@ const writableSongColumns = [
   "funeral",
   "party",
   "wills_favorite",
+  "collection_1980s",
+  "collection_1990s",
+  "collection_2000s",
+  "collection_2010s_now",
   "request_fee",
+  "private_notes",
+  "notes",
   "sheet_music_location",
   "backing_track_location",
   "reference_url",
@@ -135,7 +138,10 @@ function normalizeText(value: unknown) {
 
 function parseGenres(value: SupabaseSongRow["genres"], fallback = "") {
   if (Array.isArray(value)) {
-    return value.map(String).map((genre) => genre.trim()).filter(Boolean);
+    return value
+      .map(String)
+      .map(normalizeRepertoireGenre)
+      .filter(Boolean);
   }
 
   const raw = normalizeText(value);
@@ -147,13 +153,13 @@ function parseGenres(value: SupabaseSongRow["genres"], fallback = "") {
     return raw
       .slice(1, -1)
       .split(",")
-      .map((genre) => genre.replace(/^"|"$/g, "").trim())
+      .map((genre) => normalizeRepertoireGenre(genre.replace(/^"|"$/g, "")))
       .filter(Boolean);
   }
 
   return raw
     .split(/[;|,]/)
-    .map((genre) => genre.trim())
+    .map(normalizeRepertoireGenre)
     .filter(Boolean);
 }
 
@@ -172,7 +178,7 @@ export function mapSupabaseSongToRepertoireSong(
     source: category,
     genre: genres[0] || category || "Pop",
     genres,
-    notes: "",
+    notes: normalizeText(row.private_notes ?? row.notes),
     sheetMusic: normalizeText(row.sheet_music_location),
     backingTrack: normalizeText(row.backing_track_location),
     url: normalizeText(row.reference_url),
@@ -181,6 +187,10 @@ export function mapSupabaseSongToRepertoireSong(
     partyRecommended: Boolean(row.party),
     wills_favorite: isFavorite,
     favoriteRecommended: isFavorite,
+    collection1980s: Boolean(row.collection_1980s),
+    collection1990s: Boolean(row.collection_1990s),
+    collection2000s: Boolean(row.collection_2000s),
+    collection2010sNow: Boolean(row.collection_2010s_now),
     extraCharge: Boolean(row.request_fee),
     is_public: row.is_public ?? true,
     sort_order: row.sort_order,
@@ -192,8 +202,8 @@ export function mapRepertoireSongToSupabaseRow(
 ): SupabaseSongRow {
   const category = normalizeText(song.category || song.source);
   const genres = Array.isArray(song.genres)
-    ? song.genres.map(String).map((genre) => genre.trim()).filter(Boolean)
-    : [song.genre || category].filter(Boolean);
+    ? song.genres.map(String).map(normalizeRepertoireGenre).filter(Boolean)
+    : [normalizeRepertoireGenre(song.genre || category)].filter(Boolean);
 
   return {
     id: song.id,
@@ -205,7 +215,13 @@ export function mapRepertoireSongToSupabaseRow(
     funeral: Boolean(song.funeralRecommended),
     party: Boolean(song.partyRecommended),
     wills_favorite: Boolean(song.wills_favorite ?? song.favoriteRecommended),
+    collection_1980s: Boolean(song.collection1980s),
+    collection_1990s: Boolean(song.collection1990s),
+    collection_2000s: Boolean(song.collection2000s),
+    collection_2010s_now: Boolean(song.collection2010sNow),
     request_fee: Boolean(song.extraCharge),
+    private_notes: normalizeText(song.notes),
+    notes: normalizeText(song.notes),
     sheet_music_location: normalizeText(song.sheetMusic),
     backing_track_location: normalizeText(song.backingTrack),
     reference_url: normalizeText(song.url),
@@ -315,6 +331,10 @@ export function toPublicSong(song: RepertoireSong) {
     funeral: song.funeralRecommended,
     party: song.partyRecommended,
     wills_favorite: Boolean(song.wills_favorite ?? song.favoriteRecommended),
+    collection_1980s: Boolean(song.collection1980s),
+    collection_1990s: Boolean(song.collection1990s),
+    collection_2000s: Boolean(song.collection2000s),
+    collection_2010s_now: Boolean(song.collection2010sNow),
     request_fee: song.extraCharge,
     is_public: song.is_public ?? true,
   };

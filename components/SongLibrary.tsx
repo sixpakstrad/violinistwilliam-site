@@ -2,20 +2,36 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Reveal } from "@/components/Reveal";
-import { repertoireGenres } from "@/data/repertoire";
-import type { RepertoireSong } from "@/data/repertoire";
+import {
+  normalizeRepertoireGenre,
+  repertoireGenres,
+  type RepertoireSong,
+} from "@/data/repertoire";
 import { songRequestSettings } from "@/data/songRequestSettings";
 import { SongRequestModal } from "@/components/SongRequestModal";
 import { TipModal } from "@/components/TipModal";
 
 type GenreFilter = "All" | (typeof repertoireGenres)[number];
-type NoteFilter = "All" | "Wedding" | "Funeral" | "Party" | "Favorite";
+type NoteFilter =
+  | "All"
+  | "Wedding"
+  | "Funeral"
+  | "Party"
+  | "Favorite"
+  | "1980s"
+  | "1990s"
+  | "2000s"
+  | "2010s - Now";
 type StoredRepertoireSong = Partial<RepertoireSong> & {
   recommended?: boolean;
   wedding?: boolean;
   funeral?: boolean;
   party?: boolean;
   request_fee?: boolean;
+  collection_1980s?: boolean;
+  collection_1990s?: boolean;
+  collection_2000s?: boolean;
+  collection_2010s_now?: boolean;
 };
 type SongsPerPage = 25 | 50 | 100;
 
@@ -23,17 +39,19 @@ const songsPerPageOptions: SongsPerPage[] = [25, 50, 100];
 
 function getSongGenres(song: RepertoireSong): string[] {
   const genres = Array.isArray(song.genres)
-    ? song.genres.filter(Boolean)
+    ? song.genres.map(normalizeRepertoireGenre).filter(Boolean)
     : [];
 
-  return genres.length > 0 ? genres : [song.genre].filter(Boolean);
+  return genres.length > 0
+    ? genres
+    : [normalizeRepertoireGenre(song.genre)].filter(Boolean);
 }
 
 function normalizeSong(song: StoredRepertoireSong): RepertoireSong {
   const category = song.category || song.source || "";
   const genres = Array.isArray(song.genres)
-    ? song.genres.filter(Boolean)
-    : [song.genre || category || "Pop"];
+    ? song.genres.map(normalizeRepertoireGenre).filter(Boolean)
+    : [normalizeRepertoireGenre(song.genre || category || "Pop")].filter(Boolean);
   const isFavorite = song.wills_favorite ?? song.favoriteRecommended ?? false;
   const weddingRecommended =
     song.weddingRecommended ?? song.recommended ?? song.wedding ?? false;
@@ -59,6 +77,11 @@ function normalizeSong(song: StoredRepertoireSong): RepertoireSong {
     partyRecommended,
     wills_favorite: isFavorite,
     favoriteRecommended: isFavorite,
+    collection1980s: song.collection1980s ?? song.collection_1980s ?? false,
+    collection1990s: song.collection1990s ?? song.collection_1990s ?? false,
+    collection2000s: song.collection2000s ?? song.collection_2000s ?? false,
+    collection2010sNow:
+      song.collection2010sNow ?? song.collection_2010s_now ?? false,
     extraCharge,
   };
 }
@@ -73,7 +96,11 @@ function getSongTags(song: RepertoireSong) {
     song.funeralRecommended ? "Funeral" : "",
     song.partyRecommended ? "Party" : "",
     song.favoriteRecommended ? "Favorite" : "",
-    song.extraCharge ? "Fee required" : "",
+    song.collection1980s ? "1980s" : "",
+    song.collection1990s ? "1990s" : "",
+    song.collection2000s ? "2000s" : "",
+    song.collection2010sNow ? "2010s - Now" : "",
+    song.extraCharge ? "Request Fee" : "",
   ].filter(Boolean);
 }
 
@@ -213,6 +240,10 @@ export function SongLibrary() {
         song.funeralRecommended ? "funeral memorial celebration of life recommended" : "",
         song.partyRecommended ? "party reception celebration upbeat recommended" : "",
         song.favoriteRecommended ? "will favorite favorite recommended" : "",
+        song.collection1980s ? "1980s eighties collection" : "",
+        song.collection1990s ? "1990s nineties collection" : "",
+        song.collection2000s ? "2000s collection" : "",
+        song.collection2010sNow ? "2010s now current modern collection" : "",
         song.extraCharge ? "extra charge arrangement" : "",
       ]
         .join(" ")
@@ -226,7 +257,11 @@ export function SongLibrary() {
         (noteFilter === "Wedding" && song.weddingRecommended) ||
         (noteFilter === "Funeral" && song.funeralRecommended) ||
         (noteFilter === "Party" && song.partyRecommended) ||
-        (noteFilter === "Favorite" && song.favoriteRecommended);
+        (noteFilter === "Favorite" && song.favoriteRecommended) ||
+        (noteFilter === "1980s" && song.collection1980s) ||
+        (noteFilter === "1990s" && song.collection1990s) ||
+        (noteFilter === "2000s" && song.collection2000s) ||
+        (noteFilter === "2010s - Now" && song.collection2010sNow);
 
       return matchesQuery && matchesGenre && matchesNotes;
     });
@@ -463,6 +498,10 @@ export function SongLibrary() {
                 <option value="Funeral">Funeral recommended</option>
                 <option value="Party">Party recommended</option>
                 <option value="Favorite">Will&apos;s Favorites</option>
+                <option value="1980s">1980s</option>
+                <option value="1990s">1990s</option>
+                <option value="2000s">2000s</option>
+                <option value="2010s - Now">2010s - Now</option>
               </select>
             </label>
           </div>
@@ -488,6 +527,7 @@ export function SongLibrary() {
               <tbody>
                 {paginatedSongs.map((song, index) => {
                   const liveRequestUnavailable = song.extraCharge;
+                  const songTags = getSongTags(song);
 
                   return (
                     <tr
@@ -512,38 +552,18 @@ export function SongLibrary() {
                     </td>
                     <td className="border-t border-ivory/10 px-5 py-4">
                       <div className="flex flex-wrap gap-2">
-                        {song.weddingRecommended ? (
-                          <span className="border border-gold bg-smoke-brown/10 px-2 py-1 text-[0.65rem] uppercase tracking-[0.16em] text-[#5b5046]">
-                            Wedding
-                          </span>
-                        ) : null}
-                        {song.funeralRecommended ? (
-                          <span className="border border-smoke-brown/35 bg-smoke-brown/10 px-2 py-1 text-[0.65rem] uppercase tracking-[0.16em] text-[#5b5046]">
-                            Funeral
-                          </span>
-                        ) : null}
-                        {song.partyRecommended ? (
-                          <span className="border border-gold bg-smoke-brown/10 px-2 py-1 text-[0.65rem] uppercase tracking-[0.16em] text-[#5b5046]">
-                            Party
-                          </span>
-                        ) : null}
-                        {song.favoriteRecommended ? (
-                          <span className="border border-gold bg-smoke-brown/10 px-2 py-1 text-[0.65rem] uppercase tracking-[0.16em] text-[#5b5046]">
-                            Favorite
-                          </span>
-                        ) : null}
-                        {song.extraCharge ? (
-                          <span className="border border-smoke-brown/35 bg-smoke-brown/10 px-2 py-1 text-[0.65rem] uppercase tracking-[0.16em] text-[#5b5046]">
-                            Fee required
-                          </span>
-                        ) : null}
-                        {!song.weddingRecommended &&
-                        !song.funeralRecommended &&
-                        !song.partyRecommended &&
-                        !song.favoriteRecommended &&
-                        !song.extraCharge ? (
+                        {songTags.length > 0 ? (
+                          songTags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="border border-gold bg-smoke-brown/10 px-2 py-1 text-[0.65rem] uppercase tracking-[0.16em] text-[#5b5046]"
+                            >
+                              {tag}
+                            </span>
+                          ))
+                        ) : (
                           <span className="text-sm text-[#6a5f53]">—</span>
-                        ) : null}
+                        )}
                       </div>
                     </td>
                     <td className="border-t border-ivory/10 px-5 py-4">

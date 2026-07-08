@@ -18,6 +18,10 @@ export type RepertoireSong = {
   partyRecommended?: boolean;
   wills_favorite?: boolean;
   favoriteRecommended?: boolean;
+  collection1980s?: boolean;
+  collection1990s?: boolean;
+  collection2000s?: boolean;
+  collection2010sNow?: boolean;
   extraCharge: boolean;
   is_public?: boolean;
   sort_order?: number | null;
@@ -25,25 +29,51 @@ export type RepertoireSong = {
 
 export const repertoireGenres = [
   "Classical",
-  "Movie/Game",
-  "Musical/Opera",
-  "Latin",
-  "Traditional",
-  "Religious",
-  "Fiddle",
-  "Country",
-  "Jazz/Lounge",
-  "R&B",
-  "Blues",
-  "Klezmer",
   "Pop",
-  "Dance/Techno",
-  "Reggae",
-  "Rock/Metal",
-  "Oldies",
-  "Asian",
-  "Holiday"
+  "Rock / Classic Rock",
+  "Metal",
+  "Country",
+  "Folk",
+  "Jazz",
+  "R&B / Soul",
+  "EDM / Dance",
+  "Broadway",
+  "Disney",
+  "Movie / TV",
+  "Holiday",
+  "Latin",
+  "Christian Worship",
 ] as const;
+
+export type RepertoireGenre = (typeof repertoireGenres)[number];
+
+const repertoireGenreAliasMap: Record<string, RepertoireGenre> = {
+  "Movie/Game": "Movie / TV",
+  "Musical/Opera": "Broadway",
+  Traditional: "Folk",
+  Fiddle: "Folk",
+  Klezmer: "Folk",
+  "Rock/Metal": "Rock / Classic Rock",
+  Oldies: "Rock / Classic Rock",
+  "R&B": "R&B / Soul",
+  "Dance/Techno": "EDM / Dance",
+  "Jazz/Lounge": "Jazz",
+  Blues: "Jazz",
+  Sacred: "Christian Worship",
+  Religious: "Christian Worship",
+  Reggae: "Latin",
+  Asian: "Folk",
+};
+
+export function normalizeRepertoireGenre(genre: string): RepertoireGenre | string {
+  const trimmedGenre = genre.trim();
+
+  if (!trimmedGenre) {
+    return "";
+  }
+
+  return repertoireGenreAliasMap[trimmedGenre] || trimmedGenre;
+}
 
 export const repertoireSongs: RepertoireSong[] = [
   {

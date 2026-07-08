@@ -7,7 +7,7 @@ import { SiteAnnouncements } from "@/components/SiteAnnouncements";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.violinistwilliam.com"),
+  metadataBase: new URL("https://violinistwilliam.com"),
   title: "William Samorey | Live Violin",
   description:
     "Live violin performance, wedding music, private events, lessons, bow rehair, and instrument care by William Samorey in the Twin Cities and Midwest.",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: "William Samorey | Live Violin",
     description:
       "Live violin performance, wedding music, private events, lessons, bow rehair, and instrument care by William Samorey.",
-    url: "https://www.violinistwilliam.com",
+    url: "https://violinistwilliam.com/",
     siteName: "William Samorey",
     images: [
       {

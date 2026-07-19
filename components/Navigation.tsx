@@ -86,6 +86,7 @@ export function Navigation() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [siteDetails, setSiteDetails] = useState(defaultSiteDetails);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname();
   const isStoriesPage = pathname === "/stories";
   const brandName =
@@ -113,6 +114,18 @@ export function Navigation() {
   const closeDropdown = () => {
     closeTimer.current = setTimeout(() => setOpenMenu(null), 260);
   };
+
+  const closeMobileMenus = () => {
+    mobileMenuRef.current
+      ?.querySelectorAll("details[open]")
+      .forEach((menu) => {
+        menu.removeAttribute("open");
+      });
+  };
+
+  useEffect(() => {
+    closeMobileMenus();
+  }, [pathname]);
 
   return (
     <header
@@ -222,7 +235,7 @@ export function Navigation() {
           ))}
         </div>
 
-        <div className="flex w-full flex-wrap gap-2 pb-1 lg:hidden">
+        <div ref={mobileMenuRef} className="flex w-full flex-wrap gap-2 pb-1 lg:hidden">
           {dropdownGroups.map((group) => (
             <details key={group.label} className="group">
               <summary
@@ -235,6 +248,7 @@ export function Navigation() {
               <div className="mt-2 grid min-w-56 border border-[#c9aa70]/45 bg-[#fff7e8]/80 p-3 shadow-[0_18px_48px_rgba(34,24,14,0.20),0_0_0_1px_rgba(255,255,255,0.62)] backdrop-blur-sm">
                 <Link
                   href={group.href}
+                  onClick={closeMobileMenus}
                   className="px-4 py-3 text-[0.68rem] uppercase tracking-[0.16em] text-[#7b5a24]"
                 >
                   {group.label}
@@ -246,6 +260,7 @@ export function Navigation() {
                     <Link
                       key={`${group.label}-mobile-${link.label}-${link.href}`}
                       href={link.href}
+                      onClick={closeMobileMenus}
                       target={isExternal ? "_blank" : undefined}
                       rel={isExternal ? "noreferrer" : undefined}
                       className="px-4 py-3 text-[0.68rem] uppercase tracking-[0.16em] text-[#2f241c] transition hover:bg-[#ead8b8] hover:text-[#6f4f1f] focus:bg-[#ead8b8] focus:text-[#6f4f1f] focus:outline-none"

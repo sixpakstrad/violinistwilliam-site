@@ -2056,7 +2056,8 @@ function seoPreviewUrl(page: SeoPageSettings) {
   }
 
   const slug = page.urlSlug.startsWith("/") ? page.urlSlug : `/${page.urlSlug}`;
-  const canonicalSlug = slug === "/" || slug.endsWith("/") ? slug : `${slug}/`;
+  const canonicalSlug =
+    slug === "/" ? slug : slug.replace(/\/+$/, "");
   return `https://violinistwilliam.com${canonicalSlug}`;
 }
 

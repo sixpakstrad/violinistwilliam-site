@@ -49,6 +49,10 @@ export type PublicSongRequestInput = {
   artist?: string;
   source?: string;
   genre?: string;
+  notes?: string;
+  sheetMusic?: string;
+  backingTrack?: string;
+  url?: string;
   guestName?: string;
   review?: string;
   reviewMarketingPermission?: boolean;
@@ -277,10 +281,10 @@ export async function createLiveSongRequest(input: PublicSongRequestInput) {
     artist: normalizeText(input.artist),
     source: normalizeText(input.source),
     genre: normalizeText(input.genre),
-    notes: "",
-    sheetMusic: "",
-    backingTrack: "",
-    url: "",
+    notes: normalizeText(input.notes),
+    sheetMusic: normalizeText(input.sheetMusic),
+    backingTrack: normalizeText(input.backingTrack),
+    url: normalizeText(input.url),
     guestName: normalizeText(input.guestName),
     review: normalizeText(input.review),
     reviewMarketingPermission: Boolean(input.reviewMarketingPermission),

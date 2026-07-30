@@ -11,6 +11,10 @@ export async function POST(request: Request) {
       artist?: unknown;
       source?: unknown;
       genre?: unknown;
+      notes?: unknown;
+      sheetMusic?: unknown;
+      backingTrack?: unknown;
+      url?: unknown;
       guestName?: unknown;
       review?: unknown;
       reviewMarketingPermission?: unknown;
@@ -22,6 +26,10 @@ export async function POST(request: Request) {
       artist: String(body.artist ?? ""),
       source: String(body.source ?? ""),
       genre: String(body.genre ?? ""),
+      notes: String(body.notes ?? ""),
+      sheetMusic: String(body.sheetMusic ?? ""),
+      backingTrack: String(body.backingTrack ?? ""),
+      url: String(body.url ?? ""),
       guestName: String(body.guestName ?? ""),
       review: String(body.review ?? ""),
       reviewMarketingPermission: Boolean(body.reviewMarketingPermission),

@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "Education | William Samorey",
   description:
     "Private violin lessons with William Samorey, including how to start lessons, lesson pricing, virtual lesson options, and teaching philosophy.",
+  alternates: {
+    canonical: "/education",
+  },
 };
 
 export default function EducationPage() {

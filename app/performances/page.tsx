@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import { Ensembles } from "@/components/Ensembles";
 import { PageIntro } from "@/components/PageIntro";
 import { PerformanceMarketing } from "@/components/PerformanceMarketing";
 import { UpcomingPerformances } from "@/components/UpcomingPerformances";
 import { WeddingPackagesAvailability } from "@/components/WeddingPackagesAvailability";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/performances",
+  },
+};
 
 export default function PerformancesPage() {
   return (

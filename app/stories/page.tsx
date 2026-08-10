@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { Reveal } from "@/components/Reveal";
 import { StoriesJournal } from "@/components/StoriesJournal";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/stories",
+  },
+};
 
 export default function StoriesPage() {
   return (

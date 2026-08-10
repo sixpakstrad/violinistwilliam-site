@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Bow Rehair, Repair, and Instrument Care | William Samorey",
   description:
     "Professional bow rehair and bow repair services for violin, viola, cello, bass, and period-instrument bows, along with setup and maintenance for violin, viola, and cello players.",
+  alternates: {
+    canonical: "/bow-rehair-repair-instrument-care",
+  },
 };
 
 export default function BowRepairPage() {

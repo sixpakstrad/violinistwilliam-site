@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { PageIntro } from "@/components/PageIntro";
 import { RatesContent } from "@/components/RatesContent";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/rates",
+  },
+};
 
 export default function RatesPage() {
   return (

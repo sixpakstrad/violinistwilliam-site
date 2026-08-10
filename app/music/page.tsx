@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { PageIntro } from "@/components/PageIntro";
 import { SongLibrary } from "@/components/SongLibrary";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/music",
+  },
+};
 
 export default function MusicPage() {
   return (

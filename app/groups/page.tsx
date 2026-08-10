@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { Ensembles } from "@/components/Ensembles";
 import { PageIntro } from "@/components/PageIntro";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/groups",
+  },
+};
 
 export default function GroupsPage() {
   return (

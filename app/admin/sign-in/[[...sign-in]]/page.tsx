@@ -1,4 +1,4 @@
-import { SignIn } from "@clerk/nextjs";
+import { ClerkFailed, ClerkLoaded, ClerkLoading, SignIn } from "@clerk/nextjs";
 
 export const metadata = {
   title: "Admin Sign In | William Samorey",
@@ -21,13 +21,26 @@ export default function AdminSignInPage() {
           </p>
         </div>
         <div className="elegant-surface border border-ivory/10 p-4">
-          <SignIn
-            routing="path"
-            path="/admin/sign-in"
-            signUpUrl="/admin/sign-up"
-            forceRedirectUrl="/admin"
-            fallbackRedirectUrl="/admin"
-          />
+          <ClerkLoading>
+            <div className="bg-ivory p-8 text-center text-sm text-espresso/70">
+              Loading secure sign in...
+            </div>
+          </ClerkLoading>
+          <ClerkFailed>
+            <div className="bg-ivory p-8 text-sm leading-7 text-espresso">
+              The secure sign-in service could not load. Check the Clerk
+              production domain and DNS settings, then refresh this page.
+            </div>
+          </ClerkFailed>
+          <ClerkLoaded>
+            <SignIn
+              routing="path"
+              path="/admin/sign-in"
+              signUpUrl="/admin/sign-up"
+              forceRedirectUrl="/admin"
+              fallbackRedirectUrl="/admin"
+            />
+          </ClerkLoaded>
         </div>
       </section>
     </main>

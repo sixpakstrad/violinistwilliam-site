@@ -83,7 +83,7 @@ export function StoriesAccordion({ stories }: StoriesAccordionProps) {
                       <div className="relative min-h-[19rem] overflow-hidden bg-[#082123] shadow-[0_24px_70px_rgba(91,67,38,0.18)]">
                         <img
                           src={story.image}
-                          alt=""
+                          alt={`Story image for ${story.title}`}
                           className="absolute inset-0 h-full w-full"
                           style={{
                             objectFit: storyImageFit,

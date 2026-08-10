@@ -20,7 +20,7 @@ export default function StoriesPage() {
       <section className="relative isolate z-10 overflow-hidden px-5 pb-16 pt-32 sm:px-8 md:px-12 md:pb-20 md:pt-36 lg:px-16">
         <img
           src="/media/theater-page-background.png"
-          alt=""
+          alt="Soft theater interior background for William Samorey's stories"
           className="absolute inset-y-0 right-0 -z-20 h-full w-full object-cover object-center opacity-[0.30] md:w-[72%]"
         />
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(255,250,241,0.97)_0%,rgba(251,244,233,0.88)_38%,rgba(251,244,233,0.66)_68%,rgba(251,244,233,0.50)_100%)]" />

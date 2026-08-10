@@ -62,7 +62,7 @@ export default function RootLayout({
             <img
               className="site-background-image"
               src="/media/theater-page-background.png"
-              alt=""
+              alt="Soft theater interior background"
               role="presentation"
             />
           </div>

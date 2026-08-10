@@ -3,6 +3,9 @@ import { PageIntro } from "@/components/PageIntro";
 import { RatesContent } from "@/components/RatesContent";
 
 export const metadata: Metadata = {
+  title: "Wedding Violin Rates and Packages | William Samorey",
+  description:
+    "Review wedding violin package details, event music pricing guidance, ensemble options, and custom quote information.",
   alternates: {
     canonical: "/rates",
   },

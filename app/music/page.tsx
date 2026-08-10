@@ -3,6 +3,9 @@ import { PageIntro } from "@/components/PageIntro";
 import { SongLibrary } from "@/components/SongLibrary";
 
 export const metadata: Metadata = {
+  title: "Song Library | Wedding and Event Violin Repertoire",
+  description:
+    "Browse William Samorey's song library for wedding ceremonies, receptions, private events, celebrations, and live violin requests.",
   alternates: {
     canonical: "/music",
   },

@@ -6,6 +6,9 @@ import { UpcomingPerformances } from "@/components/UpcomingPerformances";
 import { WeddingPackagesAvailability } from "@/components/WeddingPackagesAvailability";
 
 export const metadata: Metadata = {
+  title: "Live Violin Performances | Weddings, Events, and Concerts",
+  description:
+    "Plan live violin music with William Samorey for weddings, ceremonies, private events, concerts, and special gatherings.",
   alternates: {
     canonical: "/performances",
   },

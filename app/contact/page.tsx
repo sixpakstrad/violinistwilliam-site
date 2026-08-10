@@ -3,6 +3,9 @@ import { Inquiry } from "@/components/Inquiry";
 import { PageIntro } from "@/components/PageIntro";
 
 export const metadata: Metadata = {
+  title: "Contact William Samorey | Performances, Lessons, and Repairs",
+  description:
+    "Contact William Samorey for wedding violin, live event music, private lessons, bow rehair, repair, and instrument care inquiries.",
   alternates: {
     canonical: "/contact",
   },

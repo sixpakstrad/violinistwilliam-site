@@ -3,6 +3,9 @@ import { Ensembles } from "@/components/Ensembles";
 import { PageIntro } from "@/components/PageIntro";
 
 export const metadata: Metadata = {
+  title: "String Ensembles | Solo Violin, Trio, and Quartet Options",
+  description:
+    "Explore live music ensemble options with William Samorey, from solo violin to string trio and quartet formats for events and weddings.",
   alternates: {
     canonical: "/groups",
   },

@@ -3,6 +3,9 @@ import { Reveal } from "@/components/Reveal";
 import { StoriesJournal } from "@/components/StoriesJournal";
 
 export const metadata: Metadata = {
+  title: "Will's Stories | Reflections on Music and Violin",
+  description:
+    "Read William Samorey's stories and reflections from performances, teaching, repertoire, instruments, and musical life.",
   alternates: {
     canonical: "/stories",
   },

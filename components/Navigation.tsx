@@ -146,7 +146,7 @@ export function Navigation() {
           >
             <img
               src="/media/ws-monogram.png"
-              alt=""
+              alt="William Samorey monogram"
               className="h-9 w-auto opacity-90 sm:h-11"
             />
             <span className="min-w-0 text-center">

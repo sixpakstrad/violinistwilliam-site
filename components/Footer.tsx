@@ -45,7 +45,11 @@ export function Footer() {
     <footer className="border-t border-ivory/10 px-5 py-10 sm:px-8 md:px-12 lg:px-16">
       <div className="mx-auto grid max-w-7xl gap-6 text-center text-sm text-ivory-muted lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:text-left">
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4 lg:justify-start">
-          <img src="/media/ws-monogram.png" alt="" className="h-14 w-auto opacity-80" />
+          <img
+            src="/media/ws-monogram.png"
+            alt="William Samorey monogram"
+            className="h-14 w-auto opacity-80"
+          />
           <div className="text-center sm:text-left">
             <p className="font-script text-4xl leading-none text-ivory">
               {brandName}

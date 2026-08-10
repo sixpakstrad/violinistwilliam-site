@@ -63,6 +63,7 @@ export default function RootLayout({
               className="site-background-image"
               src="/media/theater-page-background.png"
               alt=""
+              role="presentation"
             />
           </div>
           <Navigation />

@@ -110,7 +110,7 @@ export function RepairPageContent() {
     <main className="relative min-h-screen overflow-hidden bg-[#210805] text-[#f7eadc]">
       <img
         src="/media/repair-wood-background.png"
-        alt=""
+        alt="Warm wood texture background for bow rehair and repair services"
         className="pointer-events-none fixed inset-0 z-0 h-full w-full object-cover opacity-[0.78] [filter:contrast(1.2)_saturate(1.12)]"
       />
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_50%_8%,rgba(244,145,91,0.10),transparent_24rem),linear-gradient(180deg,rgba(35,10,6,0.01),rgba(35,10,6,0.08))]" />

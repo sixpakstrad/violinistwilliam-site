@@ -102,6 +102,14 @@ type StoredStoryEntry = Omit<Partial<StoryEntry>, "body"> & {
   body?: string[] | string;
 };
 
+function parseAdminParagraphInput(value: string) {
+  return value.split(/\n{2,}/);
+}
+
+function parseAdminLineInput(value: string) {
+  return value.split("\n");
+}
+
 function normalizeSong(song: StoredRepertoireSong | null, index: number): RepertoireSong {
   const category = song?.category || song?.source || "";
   const genres = Array.isArray(song?.genres)
@@ -4038,10 +4046,7 @@ export function AdminDashboard() {
                         updateStory(
                           index,
                           "body",
-                          event.target.value
-                            .split(/\n{2,}/)
-                            .map((paragraph) => paragraph.trim())
-                            .filter(Boolean),
+                          parseAdminParagraphInput(event.target.value),
                         )
                       }
                       rows={8}
@@ -4253,10 +4258,7 @@ export function AdminDashboard() {
                         updateEducationArticle(
                           index,
                           "body",
-                          event.target.value
-                            .split(/\n{2,}/)
-                            .map((paragraph) => paragraph.trim())
-                            .filter(Boolean),
+                          parseAdminParagraphInput(event.target.value),
                         )
                       }
                       rows={7}
@@ -4295,10 +4297,7 @@ export function AdminDashboard() {
                             updateEducationArticle(
                               index,
                               "secondaryBody",
-                              event.target.value
-                                .split(/\n{2,}/)
-                                .map((paragraph) => paragraph.trim())
-                                .filter(Boolean),
+                              parseAdminParagraphInput(event.target.value),
                             )
                           }
                           rows={9}
@@ -4545,10 +4544,7 @@ export function AdminDashboard() {
                   onChange={(event) =>
                     updateRepairHero(
                       "body",
-                      event.target.value
-                        .split(/\n{2,}/)
-                        .map((paragraph) => paragraph.trim())
-                        .filter(Boolean),
+                      parseAdminParagraphInput(event.target.value),
                     )
                   }
                   rows={7}
@@ -4775,10 +4771,7 @@ export function AdminDashboard() {
                         updateRepairSection(
                           sectionIndex,
                           "body",
-                          event.target.value
-                            .split(/\n{2,}/)
-                            .map((paragraph) => paragraph.trim())
-                            .filter(Boolean),
+                          parseAdminParagraphInput(event.target.value),
                         )
                       }
                       rows={7}
@@ -5402,10 +5395,7 @@ export function AdminDashboard() {
                 onChange={(event) =>
                   updateMainWeddings(
                     "body",
-                    event.target.value
-                      .split(/\n{2,}/)
-                      .map((paragraph) => paragraph.trim())
-                      .filter(Boolean),
+                    parseAdminParagraphInput(event.target.value),
                   )
                 }
                 rows={7}
@@ -5420,10 +5410,7 @@ export function AdminDashboard() {
                   onChange={(event) =>
                     updateMainWeddings(
                       "eventTypes",
-                      event.target.value
-                        .split("\n")
-                        .map((item) => item.trim())
-                        .filter(Boolean),
+                      parseAdminLineInput(event.target.value),
                     )
                   }
                   rows={6}
@@ -5549,10 +5536,7 @@ export function AdminDashboard() {
                 onChange={(event) =>
                   updateMainExperience(
                     "body",
-                    event.target.value
-                      .split(/\n{2,}/)
-                      .map((paragraph) => paragraph.trim())
-                      .filter(Boolean),
+                    parseAdminParagraphInput(event.target.value),
                   )
                 }
                 rows={7}
@@ -6018,10 +6002,7 @@ export function AdminDashboard() {
                 onChange={(event) =>
                   updateAboutBio(
                     "paragraphs",
-                    event.target.value
-                      .split(/\n{2,}/)
-                      .map((paragraph) => paragraph.trim())
-                      .filter(Boolean),
+                    parseAdminParagraphInput(event.target.value),
                   )
                 }
                 rows={12}
@@ -6066,10 +6047,7 @@ export function AdminDashboard() {
                 onChange={(event) =>
                   updateAboutInstrumentLoan(
                     "body",
-                    event.target.value
-                      .split(/\n{2,}/)
-                      .map((paragraph) => paragraph.trim())
-                      .filter(Boolean),
+                    parseAdminParagraphInput(event.target.value),
                   )
                 }
                 rows={7}
@@ -6313,10 +6291,7 @@ export function AdminDashboard() {
                 onChange={(event) =>
                   updateDonatePrimary(
                     "body",
-                    event.target.value
-                      .split(/\n{2,}/)
-                      .map((paragraph) => paragraph.trim())
-                      .filter(Boolean),
+                    parseAdminParagraphInput(event.target.value),
                   )
                 }
                 rows={7}

@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 
-import { isApprovedAdminUserId } from "@/lib/adminAllowlist";
+import { getAdminAccessFromUser } from "@/lib/adminAuth";
 import { saveLiveRequestSettings } from "@/lib/supabaseRequests";
 
 export const dynamic = "force-dynamic";
 
 async function requireAdminAccess() {
-  const user = await currentUser();
-  const userId = user?.id ?? "";
+  const access = getAdminAccessFromUser(await currentUser());
 
-  if (!isApprovedAdminUserId(userId)) {
+  if (!access.isAllowed) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 

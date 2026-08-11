@@ -10,6 +10,12 @@ export type AdminAccess = {
 
 export async function getAdminAccess(): Promise<AdminAccess> {
   const user = await currentUser();
+  return getAdminAccessFromUser(user);
+}
+
+export function getAdminAccessFromUser(
+  user: Awaited<ReturnType<typeof currentUser>>,
+): AdminAccess {
   const userId = user?.id ?? "";
   const email =
     user?.primaryEmailAddress?.emailAddress?.toLowerCase() ??

@@ -45,6 +45,14 @@ export type LiveRequestSettings = {
   currentEvent: string;
 };
 
+export type FeaturedLiveReview = {
+  id: string;
+  eventName: string;
+  quote: string;
+  source: string;
+  requestedAt: string;
+};
+
 export type PublicSongRequestInput = {
   songId?: string | number;
   title: string;
@@ -261,6 +269,37 @@ export async function readLiveSongRequests() {
   });
 
   return (rows || []).map(mapRowToSongRequest);
+}
+
+export async function readFeaturedLiveReviews() {
+  const rows = await supabaseRest<SupabaseSongRequestRow[]>("song_requests", {
+    query: [
+      "?select=id,event_name,review,guest_name,review_display_name,requested_at",
+      "&review_status=eq.featured",
+      "&review_marketing_permission=eq.true",
+      "&review=neq.",
+      "&order=requested_at.desc",
+      "&limit=20",
+    ].join(""),
+  });
+
+  return (rows || [])
+    .map(mapRowToSongRequest)
+    .filter((request) => request.review.trim())
+    .map<FeaturedLiveReview>((request) => {
+      const credit =
+        request.reviewDisplayName === "Anonymous"
+          ? "Live performance guest"
+          : request.guestName || request.reviewDisplayName || "Live performance guest";
+
+      return {
+        id: request.id,
+        eventName: request.eventName,
+        quote: request.review,
+        source: credit,
+        requestedAt: request.requestedAt,
+      };
+    });
 }
 
 export async function createLiveSongRequest(input: PublicSongRequestInput) {

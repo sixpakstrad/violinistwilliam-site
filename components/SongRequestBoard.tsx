@@ -172,6 +172,11 @@ export function SongRequestBoard() {
       if (Array.isArray(data.requests)) {
         setRequests(data.requests);
       }
+      showMessage(
+        reviewStatus === "featured"
+          ? "Review marked as featured for the homepage."
+          : `Review marked as ${reviewStatus}.`,
+      );
     } catch (error) {
       showMessage(
         error instanceof Error ? error.message : "Unable to update review.",
@@ -617,54 +622,63 @@ export function SongRequestBoard() {
             </div>
           ) : (
             <div className="grid gap-4">
-              {reviewRequests.map((request) => (
-                <article
-                  key={`review-${request.id}`}
-                  className="elegant-surface grid gap-5 border border-ivory/10 p-6 lg:grid-cols-[1fr_auto] lg:items-center"
-                >
-                  <div>
-                    <p className="mb-2 text-xs uppercase tracking-[0.24em] text-gold/75">
-                      {request.reviewStatus} /{" "}
-                      {request.reviewMarketingPermission
-                        ? "marketing permission given"
-                        : "private review"}
-                    </p>
-                    <p className="text-lg leading-8 text-ivory-muted">
-                      “{request.review}”
-                    </p>
-                    <p className="mt-3 text-xs uppercase tracking-[0.18em] text-smoke-brown">
-                      {request.guestName || "Anonymous"} / credit as{" "}
-                      {request.reviewDisplayName}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => updateReviewStatus(request.id, "approved")}
-                      disabled={isSaving}
-                      className="border border-gold/35 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold hover:text-ivory"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateReviewStatus(request.id, "featured")}
-                      disabled={isSaving}
-                      className="border border-gold/35 bg-gold/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory transition hover:border-gold hover:bg-gold/20"
-                    >
-                      Feature
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateReviewStatus(request.id, "archived")}
-                      disabled={isSaving}
-                      className="border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-ivory/35 hover:text-ivory"
-                    >
-                      Archive Review
-                    </button>
-                  </div>
-                </article>
-              ))}
+              {reviewRequests.map((request) => {
+                const isFeatured = request.reviewStatus === "featured";
+                const canFeature = request.reviewMarketingPermission;
+
+                return (
+                  <article
+                    key={`review-${request.id}`}
+                    className="elegant-surface grid gap-5 border border-ivory/10 p-6 lg:grid-cols-[1fr_auto] lg:items-center"
+                  >
+                    <div>
+                      <p className="mb-2 text-xs uppercase tracking-[0.24em] text-gold/75">
+                        {request.reviewStatus} /{" "}
+                        {request.reviewMarketingPermission
+                          ? "marketing permission given"
+                          : "private review"}
+                      </p>
+                      <p className="text-lg leading-8 text-ivory-muted">
+                        “{request.review}”
+                      </p>
+                      <p className="mt-3 text-xs uppercase tracking-[0.18em] text-smoke-brown">
+                        {request.guestName || "Anonymous"} / credit as{" "}
+                        {request.reviewDisplayName}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateReviewStatus(request.id, "approved")}
+                        disabled={isSaving}
+                        className="border border-gold/35 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold hover:text-ivory"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateReviewStatus(request.id, "featured")}
+                        disabled={isSaving || isFeatured || !canFeature}
+                        className="border border-gold/35 bg-gold/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory transition hover:border-gold hover:bg-gold/20 disabled:cursor-default disabled:border-gold disabled:bg-gold/20"
+                      >
+                        {isFeatured
+                          ? "Featured"
+                          : canFeature
+                            ? "Feature"
+                            : "No Permission"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateReviewStatus(request.id, "archived")}
+                        disabled={isSaving}
+                        className="border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-ivory/35 hover:text-ivory"
+                      >
+                        Archive Review
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>

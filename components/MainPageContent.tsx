@@ -11,6 +11,14 @@ import {
   type MainPageContentData,
 } from "@/data/mainPageContent";
 
+type FeaturedLiveReview = {
+  id: string;
+  eventName: string;
+  quote: string;
+  source: string;
+  requestedAt: string;
+};
+
 function readMainPageContent(): MainPageContentData {
   try {
     const raw = window.localStorage.getItem(adminStorageKeys.mainPage);
@@ -40,9 +48,39 @@ export function MainPageContent() {
   const [content, setContent] =
     useState<MainPageContentData>(defaultMainPageContent);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [featuredLiveReviews, setFeaturedLiveReviews] = useState<
+    FeaturedLiveReview[]
+  >([]);
 
   useEffect(() => {
     setContent(readMainPageContent());
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadFeaturedLiveReviews() {
+      try {
+        const response = await fetch("/api/featured-reviews", {
+          cache: "no-store",
+        });
+        const data = (await response.json().catch(() => ({}))) as {
+          reviews?: FeaturedLiveReview[];
+        };
+
+        if (isMounted && response.ok && Array.isArray(data.reviews)) {
+          setFeaturedLiveReviews(data.reviews);
+        }
+      } catch (error) {
+        console.error("Unable to load featured live reviews:", error);
+      }
+    }
+
+    loadFeaturedLiveReviews();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -298,6 +336,41 @@ export function MainPageContent() {
               </Reveal>
             ))}
           </div>
+
+          {featuredLiveReviews.length > 0 ? (
+            <Reveal delay={0.18} className="mt-10">
+              <div className="border border-ivory/10 bg-espresso/95 p-5 shadow-[0_24px_70px_rgba(47,41,35,0.16)]">
+                <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="mb-2 text-xs uppercase tracking-[0.26em] text-gold/75">
+                      From Live Performances
+                    </p>
+                    <h3 className="font-display text-3xl leading-tight text-ivory sm:text-4xl">
+                      Featured guest notes
+                    </h3>
+                  </div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-ivory-muted">
+                    Scroll for more
+                  </p>
+                </div>
+                <div className="flex snap-x gap-4 overflow-x-auto pb-3 [scrollbar-color:rgba(200,117,63,0.65)_rgba(251,247,239,0.12)]">
+                  {featuredLiveReviews.map((review) => (
+                    <figure
+                      key={review.id}
+                      className="min-w-[18rem] max-w-sm snap-start border border-gold/20 bg-gold/10 p-5 sm:min-w-[22rem]"
+                    >
+                      <blockquote className="text-base leading-7 text-ivory-muted">
+                        "{review.quote}"
+                      </blockquote>
+                      <figcaption className="mt-5 text-[0.68rem] uppercase tracking-[0.18em] text-gold/80">
+                        {review.source} / {review.eventName}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+          ) : null}
         </div>
       </section>
 

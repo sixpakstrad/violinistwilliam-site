@@ -466,15 +466,9 @@ export function SongRequestBoard() {
                       .filter(Boolean)
                       .join(" / ")}
                   </p>
-                  <p className="mt-3 text-sm leading-7 text-smoke-brown">
-                    {request.guestName ? `Requested by ${request.guestName}. ` : ""}
-                    {request.review}
-                  </p>
-                  {request.review ? (
-                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-smoke-brown">
-                      Review permission:{" "}
-                      {request.reviewMarketingPermission ? "yes" : "not given"}{" "}
-                      / credit as {request.reviewDisplayName}
+                  {request.guestName ? (
+                    <p className="mt-3 text-sm leading-7 text-smoke-brown">
+                      Requested by {request.guestName}.
                     </p>
                   ) : null}
                   {request.notes ||
@@ -612,7 +606,9 @@ export function SongRequestBoard() {
             </div>
             <p className="text-sm leading-7 text-ivory-muted">
               {reviewRequests.length} review
-              {reviewRequests.length === 1 ? "" : "s"} awaiting your decision.
+              {reviewRequests.length === 1 ? "" : "s"} awaiting your decision.{" "}
+              Featured reviews only appear on the homepage when marketing
+              permission was given.
             </p>
           </div>
 
@@ -655,18 +651,20 @@ export function SongRequestBoard() {
                       >
                         Approve
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => updateReviewStatus(request.id, "featured")}
-                        disabled={isSaving || isFeatured || !canFeature}
-                        className="border border-gold/35 bg-gold/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory transition hover:border-gold hover:bg-gold/20 disabled:cursor-default disabled:border-gold disabled:bg-gold/20"
-                      >
-                        {isFeatured
-                          ? "Featured"
-                          : canFeature
-                            ? "Feature"
-                            : "No Permission"}
-                      </button>
+                      {canFeature ? (
+                        <button
+                          type="button"
+                          onClick={() => updateReviewStatus(request.id, "featured")}
+                          disabled={isSaving || isFeatured}
+                          className="border border-gold/35 bg-gold/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory transition hover:border-gold hover:bg-gold/20 disabled:cursor-default disabled:border-gold disabled:bg-gold/20"
+                        >
+                          {isFeatured ? "Featured" : "Feature"}
+                        </button>
+                      ) : (
+                        <span className="inline-flex min-h-12 items-center border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-smoke-brown">
+                          Permission not given
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={() => updateReviewStatus(request.id, "archived")}

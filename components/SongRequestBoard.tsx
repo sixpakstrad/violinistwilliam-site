@@ -150,7 +150,19 @@ export function SongRequestBoard() {
   };
 
   const updateReviewStatus = async (id: string, reviewStatus: ReviewStatus) => {
+    const previousRequests = requests;
+
+    setRequests((currentRequests) =>
+      currentRequests.map((request) =>
+        request.id === id ? { ...request, reviewStatus } : request,
+      ),
+    );
     setIsSaving(true);
+    showMessage(
+      reviewStatus === "featured"
+        ? "Featuring review on the homepage..."
+        : `Marking review as ${reviewStatus}...`,
+    );
 
     try {
       const response = await fetch("/api/admin/requests", {
@@ -178,6 +190,7 @@ export function SongRequestBoard() {
           : `Review marked as ${reviewStatus}.`,
       );
     } catch (error) {
+      setRequests(previousRequests);
       showMessage(
         error instanceof Error ? error.message : "Unable to update review.",
       );
@@ -619,6 +632,7 @@ export function SongRequestBoard() {
           ) : (
             <div className="grid gap-4">
               {reviewRequests.map((request) => {
+                const isApproved = request.reviewStatus === "approved";
                 const isFeatured = request.reviewStatus === "featured";
                 const canFeature = request.reviewMarketingPermission;
 
@@ -646,10 +660,10 @@ export function SongRequestBoard() {
                       <button
                         type="button"
                         onClick={() => updateReviewStatus(request.id, "approved")}
-                        disabled={isSaving}
-                        className="border border-gold/35 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold hover:text-ivory"
+                        disabled={isSaving || isApproved}
+                        className="border border-gold/35 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold hover:text-ivory disabled:cursor-default disabled:border-gold disabled:bg-gold/10 disabled:text-ivory"
                       >
-                        Approve
+                        {isApproved ? "Approved" : "Approve"}
                       </button>
                       {canFeature ? (
                         <button

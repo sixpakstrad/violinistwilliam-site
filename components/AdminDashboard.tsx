@@ -91,10 +91,12 @@ type StoredRepertoireSong = Partial<RepertoireSong> & {
   funeral?: boolean;
   party?: boolean;
   request_fee?: boolean;
+  collection_1970s?: boolean;
   collection_1980s?: boolean;
   collection_1990s?: boolean;
   collection_2000s?: boolean;
   collection_2010s_now?: boolean;
+  oldies?: boolean;
   private_notes?: string;
 };
 type StoredStoryEntry = Omit<Partial<StoryEntry>, "body"> & {
@@ -135,11 +137,14 @@ function normalizeSong(song: StoredRepertoireSong | null, index: number): Repert
     partyRecommended: song?.partyRecommended ?? song?.party ?? false,
     wills_favorite: isFavorite,
     favoriteRecommended: isFavorite,
+    collection1970s:
+      song?.collection1970s ?? song?.collection_1970s ?? false,
     collection1980s: song?.collection1980s ?? song?.collection_1980s ?? false,
     collection1990s: song?.collection1990s ?? song?.collection_1990s ?? false,
     collection2000s: song?.collection2000s ?? song?.collection_2000s ?? false,
     collection2010sNow:
       song?.collection2010sNow ?? song?.collection_2010s_now ?? false,
+    oldies: song?.oldies ?? false,
     extraCharge: song?.extraCharge ?? song?.request_fee ?? false,
     is_public: song?.is_public ?? true,
     sort_order: song?.sort_order ?? null,
@@ -406,10 +411,12 @@ function getExportSongTags(song: RepertoireSong) {
     song.funeralRecommended ? "Funeral" : "",
     song.partyRecommended ? "Party" : "",
     song.favoriteRecommended ? "Favorite" : "",
+    song.collection1970s ? "1970s" : "",
     song.collection1980s ? "1980s" : "",
     song.collection1990s ? "1990s" : "",
     song.collection2000s ? "2000s" : "",
     song.collection2010sNow ? "2010s - Now" : "",
+    song.oldies ? "Oldies" : "",
     song.extraCharge ? "Request Fee" : "",
   ].filter(Boolean);
 }
@@ -2640,10 +2647,12 @@ export function AdminDashboard() {
         partyRecommended: false,
         wills_favorite: false,
         favoriteRecommended: false,
+        collection1970s: false,
         collection1980s: false,
         collection1990s: false,
         collection2000s: false,
         collection2010sNow: false,
+        oldies: false,
         extraCharge: false,
         is_public: true,
         sort_order: null,
@@ -3791,10 +3800,12 @@ export function AdminDashboard() {
                             ["funeralRecommended", "Funeral"],
                             ["partyRecommended", "Party"],
                             ["wills_favorite", "Favorite"],
+                            ["collection1970s", "1970s"],
                             ["collection1980s", "1980s"],
                             ["collection1990s", "1990s"],
                             ["collection2000s", "2000s"],
                             ["collection2010sNow", "2010s - Now"],
+                            ["oldies", "Oldies"],
                             ["extraCharge", "Request Fee"],
                           ].map(([field, label]) => (
                             <label

@@ -18,10 +18,12 @@ export type RepertoireSong = {
   partyRecommended?: boolean;
   wills_favorite?: boolean;
   favoriteRecommended?: boolean;
+  collection1970s?: boolean;
   collection1980s?: boolean;
   collection1990s?: boolean;
   collection2000s?: boolean;
   collection2010sNow?: boolean;
+  oldies?: boolean;
   extraCharge: boolean;
   is_public?: boolean;
   sort_order?: number | null;

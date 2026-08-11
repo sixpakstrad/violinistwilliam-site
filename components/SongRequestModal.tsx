@@ -75,6 +75,7 @@ export function SongRequestModal({ song, onClose }: SongRequestModalProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          songId: song.id,
           title: song.title,
           artist: song.artist,
           source: song.source,

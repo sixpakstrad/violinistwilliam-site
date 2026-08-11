@@ -18,20 +18,24 @@ type NoteFilter =
   | "Funeral"
   | "Party"
   | "Favorite"
+  | "1970s"
   | "1980s"
   | "1990s"
   | "2000s"
-  | "2010s - Now";
+  | "2010s - Now"
+  | "Oldies";
 type StoredRepertoireSong = Partial<RepertoireSong> & {
   recommended?: boolean;
   wedding?: boolean;
   funeral?: boolean;
   party?: boolean;
   request_fee?: boolean;
+  collection_1970s?: boolean;
   collection_1980s?: boolean;
   collection_1990s?: boolean;
   collection_2000s?: boolean;
   collection_2010s_now?: boolean;
+  oldies?: boolean;
 };
 type SongsPerPage = 25 | 50 | 100;
 
@@ -77,11 +81,13 @@ function normalizeSong(song: StoredRepertoireSong): RepertoireSong {
     partyRecommended,
     wills_favorite: isFavorite,
     favoriteRecommended: isFavorite,
+    collection1970s: song.collection1970s ?? song.collection_1970s ?? false,
     collection1980s: song.collection1980s ?? song.collection_1980s ?? false,
     collection1990s: song.collection1990s ?? song.collection_1990s ?? false,
     collection2000s: song.collection2000s ?? song.collection_2000s ?? false,
     collection2010sNow:
       song.collection2010sNow ?? song.collection_2010s_now ?? false,
+    oldies: song.oldies ?? false,
     extraCharge,
   };
 }
@@ -96,10 +102,12 @@ function getSongTags(song: RepertoireSong) {
     song.funeralRecommended ? "Funeral" : "",
     song.partyRecommended ? "Party" : "",
     song.favoriteRecommended ? "Favorite" : "",
+    song.collection1970s ? "1970s" : "",
     song.collection1980s ? "1980s" : "",
     song.collection1990s ? "1990s" : "",
     song.collection2000s ? "2000s" : "",
     song.collection2010sNow ? "2010s - Now" : "",
+    song.oldies ? "Oldies" : "",
     song.extraCharge ? "Request Fee" : "",
   ].filter(Boolean);
 }
@@ -240,10 +248,12 @@ export function SongLibrary() {
         song.funeralRecommended ? "funeral memorial celebration of life recommended" : "",
         song.partyRecommended ? "party reception celebration upbeat recommended" : "",
         song.favoriteRecommended ? "will favorite favorite recommended" : "",
+        song.collection1970s ? "1970s seventies collection" : "",
         song.collection1980s ? "1980s eighties collection" : "",
         song.collection1990s ? "1990s nineties collection" : "",
         song.collection2000s ? "2000s collection" : "",
         song.collection2010sNow ? "2010s now current modern collection" : "",
+        song.oldies ? "oldies collection classic throwback" : "",
         song.extraCharge ? "extra charge arrangement" : "",
       ]
         .join(" ")
@@ -258,10 +268,12 @@ export function SongLibrary() {
         (noteFilter === "Funeral" && song.funeralRecommended) ||
         (noteFilter === "Party" && song.partyRecommended) ||
         (noteFilter === "Favorite" && song.favoriteRecommended) ||
+        (noteFilter === "1970s" && song.collection1970s) ||
         (noteFilter === "1980s" && song.collection1980s) ||
         (noteFilter === "1990s" && song.collection1990s) ||
         (noteFilter === "2000s" && song.collection2000s) ||
-        (noteFilter === "2010s - Now" && song.collection2010sNow);
+        (noteFilter === "2010s - Now" && song.collection2010sNow) ||
+        (noteFilter === "Oldies" && song.oldies);
 
       return matchesQuery && matchesGenre && matchesNotes;
     });
@@ -498,10 +510,12 @@ export function SongLibrary() {
                 <option value="Funeral">Funeral recommended</option>
                 <option value="Party">Party recommended</option>
                 <option value="Favorite">Will&apos;s Favorites</option>
+                <option value="1970s">1970s</option>
                 <option value="1980s">1980s</option>
                 <option value="1990s">1990s</option>
                 <option value="2000s">2000s</option>
                 <option value="2010s - Now">2010s - Now</option>
+                <option value="Oldies">Oldies</option>
               </select>
             </label>
           </div>

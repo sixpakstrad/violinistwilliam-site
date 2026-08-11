@@ -4,6 +4,7 @@ import type {
   StoredSongRequest,
 } from "@/data/songRequests";
 import { songRequestSettings } from "@/data/songRequestSettings";
+import { readSupabaseSongById } from "@/lib/supabaseSongs";
 
 type SupabaseRequestOptions = {
   method?: string;
@@ -45,6 +46,7 @@ export type LiveRequestSettings = {
 };
 
 export type PublicSongRequestInput = {
+  songId?: string | number;
   title: string;
   artist?: string;
   source?: string;
@@ -274,6 +276,10 @@ export async function createLiveSongRequest(input: PublicSongRequestInput) {
     throw new Error("Song title is required.");
   }
 
+  const sourceSong = input.songId
+    ? await readSupabaseSongById(input.songId)
+    : null;
+
   const request: StoredSongRequest = {
     id: createRequestId(),
     eventName: settings.currentEvent,
@@ -281,10 +287,10 @@ export async function createLiveSongRequest(input: PublicSongRequestInput) {
     artist: normalizeText(input.artist),
     source: normalizeText(input.source),
     genre: normalizeText(input.genre),
-    notes: normalizeText(input.notes),
-    sheetMusic: normalizeText(input.sheetMusic),
-    backingTrack: normalizeText(input.backingTrack),
-    url: normalizeText(input.url),
+    notes: normalizeText(sourceSong?.notes || input.notes),
+    sheetMusic: normalizeText(sourceSong?.sheetMusic || input.sheetMusic),
+    backingTrack: normalizeText(sourceSong?.backingTrack || input.backingTrack),
+    url: normalizeText(sourceSong?.url || input.url),
     guestName: normalizeText(input.guestName),
     review: normalizeText(input.review),
     reviewMarketingPermission: Boolean(input.reviewMarketingPermission),

@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
+      songId?: unknown;
       title?: unknown;
       artist?: unknown;
       source?: unknown;
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
     };
 
     const songRequest = await createLiveSongRequest({
+      songId: body.songId === undefined ? undefined : String(body.songId),
       title: String(body.title ?? ""),
       artist: String(body.artist ?? ""),
       source: String(body.source ?? ""),

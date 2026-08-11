@@ -15,10 +15,12 @@ export type SupabaseSongRow = {
   funeral: boolean | null;
   party: boolean | null;
   wills_favorite: boolean | null;
+  collection_1970s?: boolean | null;
   collection_1980s?: boolean | null;
   collection_1990s?: boolean | null;
   collection_2000s?: boolean | null;
   collection_2010s_now?: boolean | null;
+  oldies?: boolean | null;
   request_fee: boolean | null;
   private_notes?: string | null;
   notes?: string | null;
@@ -46,10 +48,12 @@ const writableSongColumns = [
   "funeral",
   "party",
   "wills_favorite",
+  "collection_1970s",
   "collection_1980s",
   "collection_1990s",
   "collection_2000s",
   "collection_2010s_now",
+  "oldies",
   "request_fee",
   "private_notes",
   "notes",
@@ -187,10 +191,12 @@ export function mapSupabaseSongToRepertoireSong(
     partyRecommended: Boolean(row.party),
     wills_favorite: isFavorite,
     favoriteRecommended: isFavorite,
+    collection1970s: Boolean(row.collection_1970s),
     collection1980s: Boolean(row.collection_1980s),
     collection1990s: Boolean(row.collection_1990s),
     collection2000s: Boolean(row.collection_2000s),
     collection2010sNow: Boolean(row.collection_2010s_now),
+    oldies: Boolean(row.oldies),
     extraCharge: Boolean(row.request_fee),
     is_public: row.is_public ?? true,
     sort_order: row.sort_order,
@@ -215,10 +221,12 @@ export function mapRepertoireSongToSupabaseRow(
     funeral: Boolean(song.funeralRecommended),
     party: Boolean(song.partyRecommended),
     wills_favorite: Boolean(song.wills_favorite ?? song.favoriteRecommended),
+    collection_1970s: Boolean(song.collection1970s),
     collection_1980s: Boolean(song.collection1980s),
     collection_1990s: Boolean(song.collection1990s),
     collection_2000s: Boolean(song.collection2000s),
     collection_2010s_now: Boolean(song.collection2010sNow),
+    oldies: Boolean(song.oldies),
     request_fee: Boolean(song.extraCharge),
     private_notes: normalizeText(song.notes),
     notes: normalizeText(song.notes),
@@ -244,6 +252,20 @@ export async function readSupabaseSongs({
   const rows = await supabaseRest<SupabaseSongRow[]>("songs", { query });
 
   return (rows || []).map(mapSupabaseSongToRepertoireSong);
+}
+
+export async function readSupabaseSongById(id: string | number) {
+  const normalizedId = normalizeText(id);
+
+  if (!normalizedId) {
+    return null;
+  }
+
+  const rows = await supabaseRest<SupabaseSongRow[]>("songs", {
+    query: `?select=*&id=eq.${encodeURIComponent(normalizedId)}&limit=1`,
+  });
+
+  return rows?.[0] ? mapSupabaseSongToRepertoireSong(rows[0]) : null;
 }
 
 async function readSupabaseSongColumns() {
@@ -331,10 +353,12 @@ export function toPublicSong(song: RepertoireSong) {
     funeral: song.funeralRecommended,
     party: song.partyRecommended,
     wills_favorite: Boolean(song.wills_favorite ?? song.favoriteRecommended),
+    collection_1970s: Boolean(song.collection1970s),
     collection_1980s: Boolean(song.collection1980s),
     collection_1990s: Boolean(song.collection1990s),
     collection_2000s: Boolean(song.collection2000s),
     collection_2010s_now: Boolean(song.collection2010sNow),
+    oldies: Boolean(song.oldies),
     request_fee: song.extraCharge,
     is_public: song.is_public ?? true,
   };

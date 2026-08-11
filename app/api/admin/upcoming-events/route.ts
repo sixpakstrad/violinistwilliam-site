@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
 
-import { getAdminAccessFromUser } from "@/lib/adminAuth";
+import { getAdminAccess } from "@/lib/adminAuth";
 import {
   deleteSupabaseUpcomingEvents,
   readSupabaseUpcomingEvents,
@@ -11,7 +10,7 @@ import {
 export const dynamic = "force-dynamic";
 
 async function requireAdminAccess() {
-  const access = getAdminAccessFromUser(await currentUser());
+  const access = await getAdminAccess();
 
   if (!access.isAllowed) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });

@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 import { isApprovedAdmin } from "@/lib/adminAllowlist";
 
@@ -9,14 +9,15 @@ export type AdminAccess = {
 };
 
 export async function getAdminAccess(): Promise<AdminAccess> {
-  const user = await currentUser();
-  return getAdminAccessFromUser(user);
+  const [authObject, user] = await Promise.all([auth(), currentUser()]);
+  return getAdminAccessFromUser(user, authObject.userId ?? "");
 }
 
 export function getAdminAccessFromUser(
   user: Awaited<ReturnType<typeof currentUser>>,
+  authUserId = "",
 ): AdminAccess {
-  const userId = user?.id ?? "";
+  const userId = authUserId || user?.id || "";
   const email =
     user?.primaryEmailAddress?.emailAddress?.toLowerCase() ??
     user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() ??

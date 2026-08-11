@@ -164,6 +164,24 @@ async function fetchAdminSongs() {
   return data.songs.map((song, index) => normalizeSong(song, index));
 }
 
+async function fetchPublicSongs() {
+  const response = await fetch("/api/songs", { cache: "no-store" });
+  const data = (await response.json().catch(() => ({}))) as {
+    songs?: StoredRepertoireSong[];
+    error?: string;
+  };
+
+  if (!response.ok) {
+    throw new Error(data.error || `Public song load failed with status ${response.status}`);
+  }
+
+  if (!Array.isArray(data.songs)) {
+    throw new Error("Public song load did not return a songs array.");
+  }
+
+  return data.songs.map((song, index) => normalizeSong(song, index));
+}
+
 async function fetchAdminUpcomingEvents() {
   const response = await fetch("/api/admin/upcoming-events", {
     cache: "no-store",
@@ -2286,10 +2304,25 @@ export function AdminDashboard() {
         if (isMounted) {
           const message =
             error instanceof Error ? error.message : "Unknown Supabase error";
-          setSongsLoadedFromSupabase(false);
-          setSaveMessage(
-            `Could not load Supabase songs: ${message}`,
-          );
+          try {
+            const publicSongs = await fetchPublicSongs();
+            if (!isMounted) {
+              return;
+            }
+
+            setSongs(publicSongs);
+            setSongsLoadedFromSupabase(false);
+            setDirtySongIds(new Set());
+            setDeletedSongIds([]);
+            setSaveMessage(
+              `Loaded public song list only. Admin song details are unavailable: ${message}`,
+            );
+          } catch {
+            setSongsLoadedFromSupabase(false);
+            setSaveMessage(
+              `Could not load Supabase songs: ${message}`,
+            );
+          }
           window.setTimeout(() => setSaveMessage(""), 8000);
         }
       }
@@ -2515,8 +2548,20 @@ export function AdminDashboard() {
       showSaved("Song list reloaded from Supabase.");
     } catch (error) {
       console.error("Unable to reload songs from Supabase:", error);
+      const message =
+        error instanceof Error ? error.message : "Unknown Supabase error";
       setSongsLoadedFromSupabase(false);
-      showSaved("Could not reload songs from Supabase.");
+      try {
+        const publicSongs = await fetchPublicSongs();
+        setSongs(publicSongs);
+        setDirtySongIds(new Set());
+        setDeletedSongIds([]);
+        setSongPage(1);
+        setExpandedSongDetails(new Set());
+        showSaved(`Loaded public songs only. Admin details unavailable: ${message}`);
+      } catch {
+        showSaved(`Could not reload songs from Supabase: ${message}`);
+      }
     }
   };
 

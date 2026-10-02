@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Reveal } from "@/components/Reveal";
-import { defaultAddOns, defaultRateGuides } from "@/data/rates";
+import type { PricingContent } from "@/data/rates";
 
 function splitRateLine(item: string) {
   const [label, ...priceParts] = item.split(":");
@@ -11,7 +11,11 @@ function splitRateLine(item: string) {
   };
 }
 
-export function WeddingPackagesAvailability() {
+export function WeddingPackagesAvailability({
+  pricing,
+}: {
+  pricing: PricingContent;
+}) {
   return (
     <section
       id="packages"
@@ -47,7 +51,7 @@ export function WeddingPackagesAvailability() {
         </p>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-          {defaultRateGuides.map((guide, index) => (
+          {pricing.rateGuides.map((guide, index) => (
             <Reveal key={guide.title} delay={index * 0.06}>
               <article className="elegant-surface h-full border border-ivory/10 p-6">
                 <p className="text-xs uppercase tracking-[0.22em] text-gold/75">
@@ -83,7 +87,7 @@ export function WeddingPackagesAvailability() {
               </p>
             </div>
             <div className="overflow-hidden border border-ivory/10">
-              {defaultAddOns.map((item, index) => {
+              {pricing.addOns.map((item, index) => {
                 const rate = splitRateLine(item);
 
                 return (

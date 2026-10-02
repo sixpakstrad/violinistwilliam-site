@@ -4,6 +4,7 @@ import { PageIntro } from "@/components/PageIntro";
 import { PerformanceMarketing } from "@/components/PerformanceMarketing";
 import { UpcomingPerformances } from "@/components/UpcomingPerformances";
 import { WeddingPackagesAvailability } from "@/components/WeddingPackagesAvailability";
+import { readPublishedPricing } from "@/lib/supabaseSiteContent";
 
 export const metadata: Metadata = {
   title: "Wedding & Event String Music | Minneapolis–St. Paul",
@@ -14,7 +15,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function WeddingsAndEventsPage() {
+export default async function WeddingsAndEventsPage() {
+  const pricing = await readPublishedPricing();
+
   return (
     <main className="min-h-screen bg-espresso text-ivory">
       <PageIntro
@@ -24,7 +27,7 @@ export default function WeddingsAndEventsPage() {
         copy="William offers and curates live music ranging from solo violin to chamber ensembles for weddings, celebrations, private events, and special gatherings."
       />
       <PerformanceMarketing />
-      <WeddingPackagesAvailability />
+      <WeddingPackagesAvailability pricing={pricing} />
       <Ensembles />
       <UpcomingPerformances />
     </main>

@@ -8,6 +8,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+import { AdminBackupExport } from "@/components/AdminBackupExport";
 import { SongRequestBoard } from "@/components/SongRequestBoard";
 import {
   adminStorageKeys,
@@ -31,7 +32,15 @@ import {
   repertoireGenres,
   type RepertoireSong,
 } from "@/data/repertoire";
-import { defaultAddOns, defaultRateGuides, type RateGuide } from "@/data/rates";
+import {
+  defaultAddOns,
+  defaultPricingContent,
+  defaultRateGuides,
+  pricingSchemaVersion,
+  validatePricingContent,
+  type PricingContent,
+  type RateGuide,
+} from "@/data/rates";
 import {
   defaultEducationContent,
   normalizeEducationContent,
@@ -209,6 +218,84 @@ async function fetchAdminUpcomingEvents() {
   return data.events.map((event, index) =>
     normalizeUpcomingPerformance(event, index),
   );
+}
+
+type AdminPricingResponse = {
+  exists?: boolean;
+  schemaVersion?: number;
+  pricing?: PricingContent;
+  revision?: number;
+  updatedAt?: string;
+  publishedAt?: string;
+  error?: string;
+};
+
+type PricingSource =
+  | "loading"
+  | "published"
+  | "browser"
+  | "defaults"
+  | "unavailable";
+
+function readBrowserPricing() {
+  const storedRateGuides = readStoredValue<unknown>(
+    adminStorageKeys.rateGuides,
+    defaultRateGuides,
+  );
+  const storedAddOns = readStoredValue<unknown>(
+    adminStorageKeys.addOns,
+    defaultAddOns,
+  );
+  const validation = validatePricingContent({
+    rateGuides: storedRateGuides,
+    addOns: storedAddOns,
+  });
+  const hasStoredPricing =
+    window.localStorage.getItem(adminStorageKeys.rateGuides) !== null ||
+    window.localStorage.getItem(adminStorageKeys.addOns) !== null;
+
+  return {
+    pricing: validation.success ? validation.data : defaultPricingContent,
+    hasStoredPricing,
+    validationErrors: validation.success ? [] : validation.errors,
+  };
+}
+
+async function fetchAdminPricing(): Promise<AdminPricingResponse> {
+  const response = await fetch("/api/admin/pricing", { cache: "no-store" });
+  const data = (await response.json().catch(() => ({}))) as AdminPricingResponse;
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || `Pricing load failed with status ${response.status}`,
+    );
+  }
+
+  return data;
+}
+
+async function publishAdminPricing(
+  pricing: PricingContent,
+  expectedRevision: number,
+): Promise<AdminPricingResponse> {
+  const response = await fetch("/api/admin/pricing", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      schemaVersion: pricingSchemaVersion,
+      expectedRevision,
+      pricing,
+    }),
+  });
+  const data = (await response.json().catch(() => ({}))) as AdminPricingResponse;
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || `Pricing publish failed with status ${response.status}`,
+    );
+  }
+
+  return data;
 }
 
 function normalizeStory(story: StoredStoryEntry, index: number): StoryEntry {
@@ -2207,6 +2294,12 @@ export function AdminDashboard() {
     useState<RepairContentData>(defaultRepairContent);
   const [rateGuides, setRateGuides] = useState<RateGuide[]>(defaultRateGuides);
   const [addOns, setAddOns] = useState<string[]>(defaultAddOns);
+  const [pricingSource, setPricingSource] =
+    useState<PricingSource>("loading");
+  const [pricingRevision, setPricingRevision] = useState(0);
+  const [pricingPublishedAt, setPricingPublishedAt] = useState("");
+  const [pricingStatusMessage, setPricingStatusMessage] = useState("");
+  const [isPublishingPricing, setIsPublishingPricing] = useState(false);
   const [upcomingPerformances, setUpcomingPerformances] = useState<
     UpcomingPerformance[]
   >(defaultUpcomingPerformances);
@@ -2258,10 +2351,9 @@ export function AdminDashboard() {
         readStoredValue(adminStorageKeys.repairs, defaultRepairContent),
       ),
     );
-    setRateGuides(
-      readStoredValue(adminStorageKeys.rateGuides, defaultRateGuides),
-    );
-    setAddOns(readStoredValue(adminStorageKeys.addOns, defaultAddOns));
+    const browserPricing = readBrowserPricing();
+    setRateGuides(browserPricing.pricing.rateGuides);
+    setAddOns(browserPricing.pricing.addOns);
     setSiteDetails(
       normalizeSiteDetails(
         readStoredValue(adminStorageKeys.siteDetails, defaultSiteDetails),
@@ -2292,6 +2384,68 @@ export function AdminDashboard() {
 
     window.addEventListener("hashchange", syncTabToHash);
     return () => window.removeEventListener("hashchange", syncTabToHash);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPricing() {
+      const browserPricing = readBrowserPricing();
+
+      try {
+        const sharedPricing = await fetchAdminPricing();
+        if (!isMounted) {
+          return;
+        }
+
+        if (sharedPricing.exists && sharedPricing.pricing) {
+          const validation = validatePricingContent(sharedPricing.pricing);
+          if (!validation.success) {
+            throw new Error(validation.errors.join(" "));
+          }
+
+          setRateGuides(validation.data.rateGuides);
+          setAddOns(validation.data.addOns);
+          setPricingRevision(sharedPricing.revision || 0);
+          setPricingPublishedAt(sharedPricing.publishedAt || "");
+          setPricingSource("published");
+          setPricingStatusMessage("");
+          return;
+        }
+
+        setRateGuides(browserPricing.pricing.rateGuides);
+        setAddOns(browserPricing.pricing.addOns);
+        setPricingRevision(0);
+        setPricingPublishedAt("");
+        setPricingSource(
+          browserPricing.hasStoredPricing ? "browser" : "defaults",
+        );
+        setPricingStatusMessage(
+          browserPricing.validationErrors.length > 0
+            ? `Browser pricing was invalid, so source defaults are shown: ${browserPricing.validationErrors.join(" ")}`
+            : "No shared pricing record exists yet. Review the values below, export an Admin backup, then initialize published pricing explicitly.",
+        );
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setRateGuides(browserPricing.pricing.rateGuides);
+        setAddOns(browserPricing.pricing.addOns);
+        setPricingSource("unavailable");
+        setPricingStatusMessage(
+          error instanceof Error
+            ? `Shared pricing is unavailable: ${error.message}`
+            : "Shared pricing is unavailable.",
+        );
+      }
+    }
+
+    loadPricing();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -3368,18 +3522,98 @@ export function AdminDashboard() {
     }));
   };
 
-  const savePricing = () => {
-    saveStoredValue(adminStorageKeys.rateGuides, rateGuides);
-    saveStoredValue(adminStorageKeys.addOns, addOns);
-    showSaved("Pricing saved in this browser.");
+  const savePricing = async () => {
+    if (pricingSource !== "published") {
+      setPricingStatusMessage(
+        "Initialize shared pricing before using Save & Publish.",
+      );
+      return;
+    }
+
+    const validation = validatePricingContent({ rateGuides, addOns });
+    if (!validation.success) {
+      setPricingStatusMessage(validation.errors.join(" "));
+      return;
+    }
+
+    setIsPublishingPricing(true);
+    setPricingStatusMessage("Saving and publishing pricing...");
+
+    try {
+      const result = await publishAdminPricing(
+        validation.data,
+        pricingRevision,
+      );
+
+      if (!result.pricing || !result.revision) {
+        throw new Error("The pricing API returned an incomplete response.");
+      }
+
+      setRateGuides(result.pricing.rateGuides);
+      setAddOns(result.pricing.addOns);
+      setPricingRevision(result.revision);
+      setPricingPublishedAt(result.publishedAt || "");
+      setPricingSource("published");
+      setPricingStatusMessage(
+        `Pricing revision ${result.revision} is published globally.`,
+      );
+    } catch (error) {
+      setPricingStatusMessage(
+        error instanceof Error ? error.message : "Unable to publish pricing.",
+      );
+    } finally {
+      setIsPublishingPricing(false);
+    }
+  };
+
+  const initializePricing = async () => {
+    if (pricingSource !== "browser" && pricingSource !== "defaults") {
+      return;
+    }
+
+    const validation = validatePricingContent({ rateGuides, addOns });
+    if (!validation.success) {
+      setPricingStatusMessage(validation.errors.join(" "));
+      return;
+    }
+
+    setIsPublishingPricing(true);
+    setPricingStatusMessage("Initializing and publishing shared pricing...");
+
+    try {
+      const result = await publishAdminPricing(validation.data, 0);
+
+      if (!result.pricing || !result.revision) {
+        throw new Error("The pricing API returned an incomplete response.");
+      }
+
+      setRateGuides(result.pricing.rateGuides);
+      setAddOns(result.pricing.addOns);
+      setPricingRevision(result.revision);
+      setPricingPublishedAt(result.publishedAt || "");
+      setPricingSource("published");
+      setPricingStatusMessage(
+        `Pricing revision ${result.revision} is now published globally.`,
+      );
+    } catch (error) {
+      setPricingStatusMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to initialize shared pricing.",
+      );
+    } finally {
+      setIsPublishingPricing(false);
+    }
   };
 
   const resetPricing = () => {
     setRateGuides(defaultRateGuides);
     setAddOns(defaultAddOns);
-    window.localStorage.removeItem(adminStorageKeys.rateGuides);
-    window.localStorage.removeItem(adminStorageKeys.addOns);
-    showSaved("Pricing reset to the original website content.");
+    setPricingStatusMessage(
+      pricingSource === "published"
+        ? "Source defaults are loaded in the editor. Use Save & Publish to make them public."
+        : "Source defaults are loaded in the editor. Browser pricing was not deleted.",
+    );
   };
 
   const saveUpcomingPerformances = async () => {
@@ -3644,6 +3878,7 @@ export function AdminDashboard() {
             {saveMessage ? (
               <p className="text-sm leading-7 text-gold/85">{saveMessage}</p>
             ) : null}
+            <AdminBackupExport />
             <button
               type="button"
               onClick={exportSongsAsPdf}
@@ -4942,32 +5177,76 @@ export function AdminDashboard() {
 
         {activeTab === "pricing" ? (
           <div className="space-y-6">
+            <div className="elegant-surface border border-ivory/10 p-5">
+              <p className="text-xs uppercase tracking-[0.24em] text-gold/80">
+                Shared Pricing Status
+              </p>
+              <p className="mt-3 text-sm leading-7 text-ivory-muted">
+                {pricingSource === "loading"
+                  ? "Loading shared pricing..."
+                  : pricingSource === "published"
+                    ? `Supabase is authoritative. Published revision ${pricingRevision}${
+                        pricingPublishedAt
+                          ? ` on ${new Date(pricingPublishedAt).toLocaleString()}`
+                          : ""
+                      }.`
+                    : pricingSource === "browser"
+                      ? "No shared record exists. The editor currently shows pricing saved in this browser. Nothing has been uploaded automatically."
+                      : pricingSource === "defaults"
+                        ? "No shared record or browser-saved pricing exists. The editor currently shows source defaults."
+                        : "Shared pricing could not be loaded. Publishing is disabled until the server connection and database migration are available."}
+              </p>
+              {pricingStatusMessage ? (
+                <p className="mt-3 text-sm leading-7 text-gold/85" role="status">
+                  {pricingStatusMessage}
+                </p>
+              ) : null}
+              {pricingSource === "browser" || pricingSource === "defaults" ? (
+                <div className="mt-5 border border-gold/25 bg-gold/[0.06] p-4">
+                  <p className="text-sm font-medium text-ivory">
+                    These exact values will become globally published:
+                  </p>
+                  <ul className="mt-3 grid gap-2 text-sm text-ivory-muted sm:grid-cols-2 lg:grid-cols-3">
+                    {rateGuides.map((guide, index) => (
+                      <li key={`${guide.title}-${index}`}>
+                        {index + 1}. {guide.title}: {guide.price}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-sm text-ivory-muted">
+                    {addOns.length} add-on{addOns.length === 1 ? "" : "s"} will
+                    also be published in the order shown below.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={initializePricing}
+                    disabled={isPublishingPricing}
+                    className="mt-4 bg-ivory px-4 py-3 text-xs uppercase tracking-[0.18em] text-espresso transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isPublishingPricing
+                      ? "Publishing..."
+                      : pricingSource === "browser"
+                        ? "Import Current Browser Pricing"
+                        : "Initialize Published Pricing From Defaults"}
+                  </button>
+                </div>
+              ) : null}
+            </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  setRateGuides((currentGuides) => [
-                    ...currentGuides,
-                    { title: "New Package", price: "$0", description: "" },
-                  ])
-                }
-                className="border border-gold/35 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold hover:text-ivory"
-              >
-                Add Package
-              </button>
-              <button
-                type="button"
                 onClick={savePricing}
-                className="bg-ivory px-4 py-3 text-xs uppercase tracking-[0.18em] text-espresso transition hover:bg-gold"
+                disabled={pricingSource !== "published" || isPublishingPricing}
+                className="bg-ivory px-4 py-3 text-xs uppercase tracking-[0.18em] text-espresso transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Save Pricing
+                {isPublishingPricing ? "Publishing..." : "Save & Publish Pricing"}
               </button>
               <button
                 type="button"
                 onClick={resetPricing}
                 className="border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory"
               >
-                Reset Pricing
+                Load Source Defaults
               </button>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">

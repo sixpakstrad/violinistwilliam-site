@@ -1,39 +1,8 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { Reveal } from "@/components/Reveal";
-import { adminStorageKeys } from "@/data/adminContent";
-import {
-  defaultAddOns,
-  defaultRateGuides,
-  type RateGuide,
-} from "@/data/rates";
+import type { PricingContent } from "@/data/rates";
 
-function readStoredValue<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") {
-    return fallback;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-export function RatesContent() {
-  const [rateGuides, setRateGuides] = useState<RateGuide[]>(defaultRateGuides);
-  const [addOns, setAddOns] = useState<string[]>(defaultAddOns);
-
-  useEffect(() => {
-    setRateGuides(
-      readStoredValue(adminStorageKeys.rateGuides, defaultRateGuides),
-    );
-    setAddOns(readStoredValue(adminStorageKeys.addOns, defaultAddOns));
-  }, []);
-
+export function RatesContent({ pricing }: { pricing: PricingContent }) {
   return (
     <section
       id="packages"
@@ -41,7 +10,7 @@ export function RatesContent() {
     >
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {rateGuides.map((guide, index) => (
+          {pricing.rateGuides.map((guide, index) => (
             <Reveal key={`${guide.title}-${index}`} delay={index * 0.08}>
               <article className="elegant-surface relative border border-ivory/10 p-7">
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-gold/60 to-transparent" />
@@ -74,7 +43,7 @@ export function RatesContent() {
               </p>
             </div>
             <ul className="grid gap-3 text-sm leading-7 text-ivory-muted sm:grid-cols-2">
-              {addOns.map((item, index) => (
+              {pricing.addOns.map((item, index) => (
                 <li
                   key={`${item}-${index}`}
                   className="border border-ivory/10 bg-espresso/35 px-4 py-3"

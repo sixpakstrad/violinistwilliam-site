@@ -4,22 +4,37 @@ export type RateGuide = {
   description: string;
 };
 
+export type PricingContent = {
+  rateGuides: RateGuide[];
+  addOns: string[];
+};
+
+export type PricingValidationResult =
+  | { success: true; data: PricingContent }
+  | { success: false; errors: string[] };
+
+export const pricingSchemaVersion = 1;
+
+const expectedPackageCount = 5;
+const maximumAddOnCount = 30;
+const maximumPricingPayloadBytes = 64 * 1024;
+
 export const defaultRateGuides: RateGuide[] = [
   {
     title: "Ceremony Only",
-    price: "$250",
+    price: "$275",
     description:
       "Music for the ceremony: processional, incidental music, and recessional. Includes up to one selected song from the provided song list.",
   },
   {
     title: "Golden Bells",
-    price: "$300",
+    price: "$325",
     description:
       "Up to 30 minutes of prelude and postlude music, ceremony music, and up to two selected songs from the provided song list.",
   },
   {
     title: "Platinum Deluxe",
-    price: "$475",
+    price: "$500",
     description:
       "Prelude, postlude, ceremony music, all ceremony song selections from the list, one hour of cocktail hour or reception performance, and the first 50 miles of travel.",
   },
@@ -45,3 +60,127 @@ export const defaultAddOns = [
   "Custom song arrangement: $30 per song",
   "Rehearsal attendance: $200",
 ];
+
+export const defaultPricingContent: PricingContent = {
+  rateGuides: defaultRateGuides,
+  addOns: defaultAddOns,
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function validateText(
+  value: unknown,
+  label: string,
+  maximumLength: number,
+  errors: string[],
+) {
+  if (typeof value !== "string") {
+    errors.push(`${label} must be text.`);
+    return "";
+  }
+
+  const normalizedValue = value.trim();
+
+  if (!normalizedValue) {
+    errors.push(`${label} cannot be empty.`);
+  } else if (normalizedValue.length > maximumLength) {
+    errors.push(`${label} cannot exceed ${maximumLength} characters.`);
+  }
+
+  return normalizedValue;
+}
+
+export function validatePricingContent(
+  value: unknown,
+): PricingValidationResult {
+  const errors: string[] = [];
+
+  if (!isRecord(value)) {
+    return { success: false, errors: ["Pricing must be an object."] };
+  }
+
+  let payloadSize = Number.POSITIVE_INFINITY;
+  try {
+    payloadSize = new TextEncoder().encode(JSON.stringify(value)).length;
+  } catch {
+    errors.push("Pricing must be valid JSON data.");
+  }
+
+  if (payloadSize > maximumPricingPayloadBytes) {
+    errors.push(
+      `Pricing cannot exceed ${maximumPricingPayloadBytes} bytes.`,
+    );
+  }
+
+  const rawRateGuides = value.rateGuides;
+  const rawAddOns = value.addOns;
+
+  if (!Array.isArray(rawRateGuides)) {
+    errors.push("rateGuides must be an array.");
+  } else if (rawRateGuides.length !== expectedPackageCount) {
+    errors.push(`Pricing must contain exactly ${expectedPackageCount} packages.`);
+  }
+
+  if (!Array.isArray(rawAddOns)) {
+    errors.push("addOns must be an array.");
+  } else if (rawAddOns.length > maximumAddOnCount) {
+    errors.push(`Pricing cannot contain more than ${maximumAddOnCount} add-ons.`);
+  }
+
+  const rateGuides = Array.isArray(rawRateGuides)
+    ? rawRateGuides.map((guide, index) => {
+        if (!isRecord(guide)) {
+          errors.push(`Package ${index + 1} must be an object.`);
+          return { title: "", price: "", description: "" };
+        }
+
+        return {
+          title: validateText(
+            guide.title,
+            `Package ${index + 1} title`,
+            120,
+            errors,
+          ),
+          price: validateText(
+            guide.price,
+            `Package ${index + 1} price`,
+            80,
+            errors,
+          ),
+          description: validateText(
+            guide.description,
+            `Package ${index + 1} description`,
+            3000,
+            errors,
+          ),
+        };
+      })
+    : [];
+
+  const addOns = Array.isArray(rawAddOns)
+    ? rawAddOns.map((addOn, index) =>
+        validateText(addOn, `Add-on ${index + 1}`, 500, errors),
+      )
+    : [];
+
+  const normalizedTitles = rateGuides
+    .map((guide) => guide.title.toLocaleLowerCase())
+    .filter(Boolean);
+  if (new Set(normalizedTitles).size !== normalizedTitles.length) {
+    errors.push("Package titles must be unique.");
+  }
+
+  if (errors.length > 0) {
+    return { success: false, errors };
+  }
+
+  return {
+    success: true,
+    data: {
+      rateGuides,
+      addOns,
+    },
+  };
+}

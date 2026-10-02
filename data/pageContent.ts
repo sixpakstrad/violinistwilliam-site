@@ -383,9 +383,8 @@ export const defaultSeoSettings: SeoSettings = {
       pageTitle: "Bow Rehair, Repair, and Instrument Care | William Samorey",
       metaDescription:
         "Professional bow rehair, bow repair, setup, maintenance, and instrument care for violin, viola, cello, bass, and period-instrument bows.",
-      urlSlug: "/bow-rehair-repair-instrument-care",
-      canonicalUrl:
-        "https://violinistwilliam.com/bow-rehair-repair-instrument-care",
+      urlSlug: "/luthier-services",
+      canonicalUrl: "https://violinistwilliam.com/luthier-services",
       index: true,
       includeInSitemap: true,
       ogTitle: "Bow Rehair, Repair, and Instrument Care",

@@ -64,19 +64,19 @@ const dropdownGroups = [
   },
   {
     label: "Repairs",
-    href: "/bow-rehair-repair-instrument-care",
+    href: "/luthier-services",
     links: [
       {
         label: "Bow Rehairs and Repair",
-        href: "/bow-rehair-repair-instrument-care#bow-rehairs-repair",
+        href: "/luthier-services#bow-rehairs-repair",
       },
       {
         label: "Set-up & Maintenance",
-        href: "/bow-rehair-repair-instrument-care#setup-maintenance",
+        href: "/luthier-services#setup-maintenance",
       },
       {
         label: "Training & Background",
-        href: "/bow-rehair-repair-instrument-care#training-background",
+        href: "/luthier-services#training-background",
       },
     ],
   },

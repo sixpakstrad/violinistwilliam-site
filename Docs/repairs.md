@@ -2,8 +2,8 @@
 
 ## Route
 
-- Page: `/bow-rehair-repair-instrument-care`
-- Primary component/content sources: `app/bow-rehair-repair-instrument-care/page.tsx`, `components/RepairPageContent.tsx`, `components/RepairCareSlideshow.tsx`, `data/repairContent.ts`, `data/pageContent.ts`
+- Page: `/luthier-services`
+- Primary component/content sources: `app/luthier-services/page.tsx`, `components/RepairPageContent.tsx`, `components/RepairCareSlideshow.tsx`, `data/repairContent.ts`, `data/pageContent.ts`
 - SEO key: `repairs`
 
 ## Page Purpose

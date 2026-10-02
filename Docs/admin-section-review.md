@@ -483,7 +483,7 @@ Public pages currently include routes such as:
 /contact
 /donate
 /wills-stories
-/bow-rehair-repair-instrument-care
+/luthier-services
 ```
 
 Private/protected routes include:

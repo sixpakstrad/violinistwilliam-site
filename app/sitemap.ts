@@ -10,7 +10,7 @@ const publicRoutes = [
   { path: "/rates", priority: 0.7 },
   { path: "/groups", priority: 0.65 },
   { path: "/music", priority: 0.85 },
-  { path: "/bow-rehair-repair-instrument-care", priority: 0.8 },
+  { path: "/luthier-services", priority: 0.8 },
   { path: "/stories", priority: 0.65 },
   { path: "/contact", priority: 0.85 },
   { path: "/donate", priority: 0.45 },

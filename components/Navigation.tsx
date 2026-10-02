@@ -50,15 +50,15 @@ const dropdownGroups = [
     ],
   },
   {
-    label: "Performance",
-    href: "/performances",
+    label: "Weddings & Events",
+    href: "/weddings-and-events",
     links: [
-      { label: "Weddings", href: "/performances#weddings" },
-      { label: "Rates / Packages", href: "/performances#packages" },
-      { label: "Ensembles", href: "/performances#ensembles" },
+      { label: "Weddings", href: "/weddings-and-events#weddings" },
+      { label: "Rates / Packages", href: "/weddings-and-events#packages" },
+      { label: "Ensembles", href: "/weddings-and-events#ensembles" },
       {
         label: "Upcoming Performances",
-        href: "/performances#upcoming-performances",
+        href: "/weddings-and-events#upcoming-performances",
       },
     ],
   },

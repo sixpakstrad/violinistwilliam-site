@@ -153,12 +153,12 @@ export const defaultPageContent: EditablePageContent[] = [
   },
   {
     key: "performance",
-    label: "Performance",
-    eyebrow: "Performances",
+    label: "Weddings & Events",
+    eyebrow: "Weddings & Events",
     title:
-      "Live violin music shaped for ceremonies, gatherings, concerts, and celebration.",
+      "Live string music, curated by William, for the moments you'll remember.",
     copy:
-      "Explore wedding and event music, package options, ensemble formats, and upcoming opportunities to hear William perform live.",
+      "William offers and curates live music ranging from solo violin to chamber ensembles for weddings, celebrations, private events, and special gatherings.",
     primaryImage: "",
     titleSize: "",
     titleColor: "",
@@ -279,17 +279,17 @@ export const defaultSeoSettings: SeoSettings = {
     },
     {
       key: "performance",
-      label: "Performance",
-      pageTitle: "Wedding and Event Violinist | William Samorey",
+      label: "Weddings & Events",
+      pageTitle: "Wedding & Event String Music | Minneapolis–St. Paul",
       metaDescription:
-        "Wedding, event, proposal, memorial, and private performance violin services with solo violin, duos, trios, and string quartets.",
-      urlSlug: "/performances",
-      canonicalUrl: "https://violinistwilliam.com/performances",
+        "Live string music curated by William Samorey for weddings, ceremonies, cocktail hours, receptions, private events, and special gatherings throughout the Twin Cities and Midwest.",
+      urlSlug: "/weddings-and-events",
+      canonicalUrl: "https://violinistwilliam.com/weddings-and-events",
       index: true,
       includeInSitemap: true,
-      ogTitle: "Wedding and Event Violinist | William Samorey",
+      ogTitle: "Wedding & Event String Music | Minneapolis–St. Paul",
       ogDescription:
-        "Music you will cherish and your guests will remember for ceremonies, cocktail hours, dinners, and celebrations.",
+        "Live string music curated by William Samorey for weddings, ceremonies, cocktail hours, receptions, private events, and special gatherings throughout the Twin Cities and Midwest.",
       ogImage: "/media/brahms-stained-glass.jpg",
       primaryKeyword: "wedding violinist Minnesota",
       secondaryKeywords: "string quartet Minnesota, ceremony music, cocktail hour violin",

@@ -55,7 +55,7 @@ export function WeddingPackagesAvailability({
               <h3 className="mt-4 font-display text-3xl leading-none text-ivory">
                 {pricing.ensembleGuide.heading}
               </h3>
-              <p className="mt-5 text-sm leading-7 text-ivory-muted">
+              <p className="mt-5 whitespace-pre-line text-sm leading-7 text-ivory-muted">
                 {pricing.ensembleGuide.body}
               </p>
               <p className="mt-5 text-sm leading-7 text-ivory-muted">

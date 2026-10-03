@@ -46,13 +46,27 @@ export function WeddingPackagesAvailability({
           </div>
         </Reveal>
 
-        <p className="mt-10 text-xs uppercase tracking-[0.24em] text-gold">
-          Price are per performer.
-        </p>
+        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <Reveal>
+            <article className="h-full border border-gold/25 bg-gold/[0.055] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <p className="text-xs uppercase tracking-[0.22em] text-bronze-soft">
+                Build Your Ensemble
+              </p>
+              <h3 className="mt-4 font-display text-3xl leading-none text-ivory">
+                Package prices are per performer.
+              </h3>
+              <p className="mt-5 text-sm leading-7 text-ivory-muted">
+                Choose solo violin, duo, trio, or string quartet to create the
+                sound that fits your celebration.
+              </p>
+              <p className="mt-5 border-t border-gold/20 pt-5 text-sm leading-7 text-gold/85">
+                Not sure what fits your event? I’ll help you choose.
+              </p>
+            </article>
+          </Reveal>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
           {pricing.rateGuides.map((guide, index) => (
-            <Reveal key={guide.title} delay={index * 0.06}>
+            <Reveal key={guide.title} delay={(index + 1) * 0.06}>
               <article className="elegant-surface h-full border border-ivory/10 p-6">
                 <p className="text-xs uppercase tracking-[0.22em] text-gold/75">
                   {guide.price}

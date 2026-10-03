@@ -48,19 +48,18 @@ export function WeddingPackagesAvailability({
 
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <Reveal>
-            <article className="h-full border border-gold/25 bg-gold/[0.055] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <p className="text-xs uppercase tracking-[0.22em] text-bronze-soft">
-                Build Your Ensemble
+            <article className="elegant-surface h-full border border-ivory/10 p-6">
+              <p className="text-xs uppercase tracking-[0.22em] text-gold/75">
+                {pricing.ensembleGuide.eyebrow}
               </p>
               <h3 className="mt-4 font-display text-3xl leading-none text-ivory">
-                Package prices are per performer.
+                {pricing.ensembleGuide.heading}
               </h3>
               <p className="mt-5 text-sm leading-7 text-ivory-muted">
-                Choose solo violin, duo, trio, or string quartet to create the
-                sound that fits your celebration.
+                {pricing.ensembleGuide.body}
               </p>
-              <p className="mt-5 border-t border-gold/20 pt-5 text-sm leading-7 text-gold/85">
-                Not sure what fits your event? I’ll help you choose.
+              <p className="mt-5 text-sm leading-7 text-ivory-muted">
+                {pricing.ensembleGuide.closing}
               </p>
             </article>
           </Reveal>

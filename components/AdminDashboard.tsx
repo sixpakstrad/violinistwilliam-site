@@ -39,10 +39,12 @@ import {
 } from "@/data/repertoire";
 import {
   defaultAddOns,
+  defaultEnsembleGuide,
   defaultPricingContent,
   defaultRateGuides,
   pricingSchemaVersion,
   validatePricingContent,
+  type EnsembleGuide,
   type PricingContent,
   type RateGuide,
 } from "@/data/rates";
@@ -275,6 +277,7 @@ function readBrowserPricing() {
     defaultAddOns,
   );
   const validation = validatePricingContent({
+    ensembleGuide: defaultEnsembleGuide,
     rateGuides: storedRateGuides,
     addOns: storedAddOns,
   });
@@ -2389,6 +2392,8 @@ export function AdminDashboard() {
     useState<EducationContentData>(defaultEducationContent);
   const [repairContent, setRepairContent] =
     useState<RepairContentData>(defaultRepairContent);
+  const [ensembleGuide, setEnsembleGuide] =
+    useState<EnsembleGuide>(defaultEnsembleGuide);
   const [rateGuides, setRateGuides] = useState<RateGuide[]>(defaultRateGuides);
   const [addOns, setAddOns] = useState<string[]>(defaultAddOns);
   const [pricingSource, setPricingSource] =
@@ -2458,6 +2463,7 @@ export function AdminDashboard() {
       ),
     );
     const browserPricing = readBrowserPricing();
+    setEnsembleGuide(browserPricing.pricing.ensembleGuide);
     setRateGuides(browserPricing.pricing.rateGuides);
     setAddOns(browserPricing.pricing.addOns);
     setSiteDetails(
@@ -2506,6 +2512,7 @@ export function AdminDashboard() {
             throw new Error(validation.errors.join(" "));
           }
 
+          setEnsembleGuide(validation.data.ensembleGuide);
           setRateGuides(validation.data.rateGuides);
           setAddOns(validation.data.addOns);
           setPricingRevision(sharedPricing.revision || 0);
@@ -2515,6 +2522,7 @@ export function AdminDashboard() {
           return;
         }
 
+        setEnsembleGuide(browserPricing.pricing.ensembleGuide);
         setRateGuides(browserPricing.pricing.rateGuides);
         setAddOns(browserPricing.pricing.addOns);
         setPricingRevision(0);
@@ -2532,6 +2540,7 @@ export function AdminDashboard() {
           return;
         }
 
+        setEnsembleGuide(browserPricing.pricing.ensembleGuide);
         setRateGuides(browserPricing.pricing.rateGuides);
         setAddOns(browserPricing.pricing.addOns);
         setPricingSource("unavailable");
@@ -3821,7 +3830,11 @@ export function AdminDashboard() {
       return;
     }
 
-    const validation = validatePricingContent({ rateGuides, addOns });
+    const validation = validatePricingContent({
+      ensembleGuide,
+      rateGuides,
+      addOns,
+    });
     if (!validation.success) {
       setPricingStatusMessage(validation.errors.join(" "));
       return;
@@ -3840,6 +3853,7 @@ export function AdminDashboard() {
         throw new Error("The pricing API returned an incomplete response.");
       }
 
+      setEnsembleGuide(result.pricing.ensembleGuide);
       setRateGuides(result.pricing.rateGuides);
       setAddOns(result.pricing.addOns);
       setPricingRevision(result.revision);
@@ -3862,7 +3876,11 @@ export function AdminDashboard() {
       return;
     }
 
-    const validation = validatePricingContent({ rateGuides, addOns });
+    const validation = validatePricingContent({
+      ensembleGuide,
+      rateGuides,
+      addOns,
+    });
     if (!validation.success) {
       setPricingStatusMessage(validation.errors.join(" "));
       return;
@@ -3878,6 +3896,7 @@ export function AdminDashboard() {
         throw new Error("The pricing API returned an incomplete response.");
       }
 
+      setEnsembleGuide(result.pricing.ensembleGuide);
       setRateGuides(result.pricing.rateGuides);
       setAddOns(result.pricing.addOns);
       setPricingRevision(result.revision);
@@ -3898,6 +3917,7 @@ export function AdminDashboard() {
   };
 
   const resetPricing = () => {
+    setEnsembleGuide(defaultEnsembleGuide);
     setRateGuides(defaultRateGuides);
     setAddOns(defaultAddOns);
     setPricingStatusMessage(
@@ -5746,6 +5766,60 @@ export function AdminDashboard() {
               >
                 Load Source Defaults
               </button>
+            </div>
+            <div className="elegant-surface border border-ivory/10 p-5">
+              <p className="text-xs uppercase tracking-[0.24em] text-gold/80">
+                Build Your Ensemble Card
+              </p>
+              <p className="mt-3 text-sm leading-7 text-ivory-muted">
+                Edit the informational card that appears before the five
+                wedding package cards. It does not create another package or
+                price.
+              </p>
+              <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                <SettingsInput
+                  label="Eyebrow"
+                  value={ensembleGuide.eyebrow}
+                  onChange={(value) =>
+                    setEnsembleGuide((currentGuide) => ({
+                      ...currentGuide,
+                      eyebrow: value,
+                    }))
+                  }
+                />
+                <SettingsInput
+                  label="Heading"
+                  value={ensembleGuide.heading}
+                  onChange={(value) =>
+                    setEnsembleGuide((currentGuide) => ({
+                      ...currentGuide,
+                      heading: value,
+                    }))
+                  }
+                />
+                <SettingsTextarea
+                  label="Body"
+                  value={ensembleGuide.body}
+                  onChange={(value) =>
+                    setEnsembleGuide((currentGuide) => ({
+                      ...currentGuide,
+                      body: value,
+                    }))
+                  }
+                  rows={4}
+                />
+                <SettingsTextarea
+                  label="Closing Text"
+                  value={ensembleGuide.closing}
+                  onChange={(value) =>
+                    setEnsembleGuide((currentGuide) => ({
+                      ...currentGuide,
+                      closing: value,
+                    }))
+                  }
+                  rows={4}
+                />
+              </div>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               {rateGuides.map((guide, index) => (

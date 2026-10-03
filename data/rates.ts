@@ -4,7 +4,15 @@ export type RateGuide = {
   description: string;
 };
 
+export type EnsembleGuide = {
+  eyebrow: string;
+  heading: string;
+  body: string;
+  closing: string;
+};
+
 export type PricingContent = {
+  ensembleGuide: EnsembleGuide;
   rateGuides: RateGuide[];
   addOns: string[];
 };
@@ -18,6 +26,13 @@ export const pricingSchemaVersion = 1;
 const expectedPackageCount = 5;
 const maximumAddOnCount = 30;
 const maximumPricingPayloadBytes = 64 * 1024;
+
+export const defaultEnsembleGuide: EnsembleGuide = {
+  eyebrow: "Build Your Ensemble",
+  heading: "Package prices are per performer.",
+  body: "Choose solo violin, duo, trio, or string quartet to create the sound that fits your celebration.",
+  closing: "Not sure what fits your event? I’ll help you choose.",
+};
 
 export const defaultRateGuides: RateGuide[] = [
   {
@@ -62,6 +77,7 @@ export const defaultAddOns = [
 ];
 
 export const defaultPricingContent: PricingContent = {
+  ensembleGuide: defaultEnsembleGuide,
   rateGuides: defaultRateGuides,
   addOns: defaultAddOns,
 };
@@ -116,6 +132,14 @@ export function validatePricingContent(
 
   const rawRateGuides = value.rateGuides;
   const rawAddOns = value.addOns;
+  const rawEnsembleGuide =
+    value.ensembleGuide === undefined
+      ? defaultEnsembleGuide
+      : value.ensembleGuide;
+
+  if (!isRecord(rawEnsembleGuide)) {
+    errors.push("Build Your Ensemble card must be an object.");
+  }
 
   if (!Array.isArray(rawRateGuides)) {
     errors.push("rateGuides must be an array.");
@@ -165,6 +189,35 @@ export function validatePricingContent(
       )
     : [];
 
+  const ensembleGuide = isRecord(rawEnsembleGuide)
+    ? {
+        eyebrow: validateText(
+          rawEnsembleGuide.eyebrow,
+          "Build Your Ensemble eyebrow",
+          120,
+          errors,
+        ),
+        heading: validateText(
+          rawEnsembleGuide.heading,
+          "Build Your Ensemble heading",
+          240,
+          errors,
+        ),
+        body: validateText(
+          rawEnsembleGuide.body,
+          "Build Your Ensemble body",
+          1200,
+          errors,
+        ),
+        closing: validateText(
+          rawEnsembleGuide.closing,
+          "Build Your Ensemble closing text",
+          500,
+          errors,
+        ),
+      }
+    : defaultEnsembleGuide;
+
   const normalizedTitles = rateGuides
     .map((guide) => guide.title.toLocaleLowerCase())
     .filter(Boolean);
@@ -179,6 +232,7 @@ export function validatePricingContent(
   return {
     success: true,
     data: {
+      ensembleGuide,
       rateGuides,
       addOns,
     },

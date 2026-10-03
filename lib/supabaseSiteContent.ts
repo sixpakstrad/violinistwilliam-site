@@ -45,6 +45,7 @@ export class PricingRevisionConflictError extends Error {
 const siteContentTable = "site_content";
 const pricingContentKey = "pricing";
 export const pricingContentCacheTag = "site-content:pricing";
+const pricingContentCacheKeyVersion = "ensemble-guide-v1";
 
 function getSupabaseConfig() {
   const supabaseUrl =
@@ -176,7 +177,7 @@ async function readPricingRecordUncached() {
 
 const readCachedPricingRecord = unstable_cache(
   readPricingRecordUncached,
-  [pricingContentCacheTag],
+  [pricingContentCacheTag, pricingContentCacheKeyVersion],
   {
     tags: [pricingContentCacheTag],
     revalidate: 60 * 60,

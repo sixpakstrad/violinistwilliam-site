@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inquiry } from "@/components/Inquiry";
 import { PageIntro } from "@/components/PageIntro";
+import { readPublishedPageIntro } from "@/lib/supabasePageIntros";
 
 export const metadata: Metadata = {
   title: "Contact William Samorey | Performances, Lessons, and Repairs",
@@ -11,11 +12,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const pageIntro = await readPublishedPageIntro("contact");
+
   return (
     <main className="min-h-screen bg-espresso text-ivory">
       <PageIntro
         pageKey="contact"
+        content={pageIntro}
         eyebrow="Contact / Inquire"
         title="Choose the right conversation for the music, lesson, or instrument care you need."
         copy="Use the inquiry forms below to share performance details, teaching goals, or bow and instrument care questions."

@@ -4,6 +4,7 @@ import { PageIntro } from "@/components/PageIntro";
 import { PerformanceMarketing } from "@/components/PerformanceMarketing";
 import { UpcomingPerformances } from "@/components/UpcomingPerformances";
 import { WeddingPackagesAvailability } from "@/components/WeddingPackagesAvailability";
+import { readPublishedPageIntro } from "@/lib/supabasePageIntros";
 import { readPublishedPricing } from "@/lib/supabaseSiteContent";
 
 export const metadata: Metadata = {
@@ -16,12 +17,16 @@ export const metadata: Metadata = {
 };
 
 export default async function WeddingsAndEventsPage() {
-  const pricing = await readPublishedPricing();
+  const [pageIntro, pricing] = await Promise.all([
+    readPublishedPageIntro("performance"),
+    readPublishedPricing(),
+  ]);
 
   return (
     <main className="min-h-screen bg-espresso text-ivory">
       <PageIntro
         pageKey="performance"
+        content={pageIntro}
         eyebrow="Weddings & Events"
         title="Live string music, curated by William, for the moments you'll remember."
         copy="William offers and curates live music ranging from solo violin to chamber ensembles for weddings, celebrations, private events, and special gatherings."

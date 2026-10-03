@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageIntro } from "@/components/PageIntro";
 import { RatesContent } from "@/components/RatesContent";
+import { readPublishedPageIntro } from "@/lib/supabasePageIntros";
 import { readPublishedPricing } from "@/lib/supabaseSiteContent";
 
 export const metadata: Metadata = {
@@ -13,12 +14,16 @@ export const metadata: Metadata = {
 };
 
 export default async function RatesPage() {
-  const pricing = await readPublishedPricing();
+  const [pageIntro, pricing] = await Promise.all([
+    readPublishedPageIntro("rates"),
+    readPublishedPricing(),
+  ]);
 
   return (
     <main className="min-h-screen bg-espresso text-ivory">
       <PageIntro
         pageKey="rates"
+        content={pageIntro}
         eyebrow="Rates"
         title="Wedding packages shaped around timing, location, and musical scope."
         copy="Pricing below reflects one performer/person. Additional performers, custom requests, and travel details can be quoted after the event date and location are known."

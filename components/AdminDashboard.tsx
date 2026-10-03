@@ -17,13 +17,18 @@ import {
   type SiteDetails,
 } from "@/data/adminContent";
 import {
-  defaultPageContent,
+  defaultPageIntroContent,
   defaultSeoSettings,
+  getSourcePageIntro,
+  pageIntroPageKeys,
+  pageIntroSchemaVersion,
   pageContentStorageKey,
   normalizeSeoSettings,
   seoStorageKey,
-  type EditablePageContent,
-  type EditablePageKey,
+  validatePageIntroContent,
+  type PageIntroContent,
+  type PageIntroPageContent,
+  type PageIntroPageKey,
   type SeoPageSettings,
   type SeoSettings,
 } from "@/data/pageContent";
@@ -85,6 +90,7 @@ type AdminTab =
   | "requests"
   | "songs"
   | "main"
+  | "page-intros"
   | "about"
   | "donate"
   | "pricing"
@@ -111,6 +117,28 @@ type StoredRepertoireSong = Partial<RepertoireSong> & {
 type StoredStoryEntry = Omit<Partial<StoryEntry>, "body"> & {
   id?: string;
   body?: string[] | string;
+};
+
+type AdminPageIntroResponse = {
+  exists?: boolean;
+  schemaVersion?: number;
+  pageIntros?: PageIntroContent;
+  revision?: number;
+  updatedAt?: string;
+  publishedAt?: string;
+  error?: string;
+};
+
+type PageIntroSource =
+  | "loading"
+  | "published"
+  | "uninitialized"
+  | "unavailable";
+
+type BrowserPageIntroSnapshot = {
+  key: PageIntroPageKey;
+  hasStoredValue: boolean;
+  value: PageIntroPageContent | null;
 };
 
 function parseAdminParagraphInput(value: string) {
@@ -298,6 +326,43 @@ async function publishAdminPricing(
   return data;
 }
 
+async function fetchAdminPageIntros(): Promise<AdminPageIntroResponse> {
+  const response = await fetch("/api/admin/page-intros", { cache: "no-store" });
+  const data = (await response.json().catch(() => ({}))) as AdminPageIntroResponse;
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || `PageIntro load failed with status ${response.status}`,
+    );
+  }
+
+  return data;
+}
+
+async function publishAdminPageIntros(
+  pageIntros: PageIntroContent,
+  expectedRevision: number,
+): Promise<AdminPageIntroResponse> {
+  const response = await fetch("/api/admin/page-intros", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      schemaVersion: pageIntroSchemaVersion,
+      expectedRevision,
+      pageIntros,
+    }),
+  });
+  const data = (await response.json().catch(() => ({}))) as AdminPageIntroResponse;
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || `PageIntro publish failed with status ${response.status}`,
+    );
+  }
+
+  return data;
+}
+
 function normalizeStory(story: StoredStoryEntry, index: number): StoryEntry {
   const rawBody = Array.isArray(story.body)
     ? story.body
@@ -362,24 +427,49 @@ function readStoredValue<T>(key: string, fallback: T): T {
   }
 }
 
-function normalizePageContent(value: unknown): EditablePageContent[] {
-  if (!Array.isArray(value)) {
-    return defaultPageContent;
+function readBrowserPageIntroSnapshots(): BrowserPageIntroSnapshot[] {
+  let storedPages: unknown[] = [];
+
+  try {
+    const raw = window.localStorage.getItem(pageContentStorageKey);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    storedPages = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    storedPages = [];
   }
 
-  return defaultPageContent.map((defaultPage) => {
-    const storedPage = value.find(
-      (page): page is Partial<EditablePageContent> =>
+  return pageIntroPageKeys.map((key) => {
+    const source = getSourcePageIntro(key);
+    const storedPage = storedPages.find(
+      (page) =>
         Boolean(page) &&
         typeof page === "object" &&
-        (page as Partial<EditablePageContent>).key === defaultPage.key,
-    );
+        !Array.isArray(page) &&
+        (page as Record<string, unknown>).key === key,
+    ) as Record<string, unknown> | undefined;
+
+    if (!storedPage) {
+      return { key, hasStoredValue: false, value: null };
+    }
+
+    const readText = (field: keyof PageIntroPageContent) =>
+      typeof storedPage[field] === "string"
+        ? String(storedPage[field])
+        : source[field];
 
     return {
-      ...defaultPage,
-      ...storedPage,
-      key: defaultPage.key,
-      label: storedPage?.label || defaultPage.label,
+      key,
+      hasStoredValue: true,
+      value: {
+        key,
+        eyebrow: readText("eyebrow"),
+        title: readText("title"),
+        copy: readText("copy"),
+        titleSize: readText("titleSize"),
+        titleColor: readText("titleColor"),
+        subtitleSize: readText("subtitleSize"),
+        subtitleColor: readText("subtitleColor"),
+      },
     };
   });
 }
@@ -1929,12 +2019,14 @@ function SettingsInput({
   onChange,
   placeholder,
   type = "text",
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   type?: string;
+  disabled?: boolean;
 }) {
   const isDate = type === "date";
 
@@ -1948,9 +2040,10 @@ function SettingsInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        disabled={disabled}
         className={`min-h-12 w-full border border-ivory/10 bg-espresso/45 px-4 text-ivory outline-none transition placeholder:text-ivory-muted/40 focus:border-gold/70 ${
           isDate ? "cursor-pointer" : ""
-        }`}
+        } disabled:cursor-not-allowed disabled:opacity-60`}
       />
       {isDate ? (
         <span className="mt-2 block text-xs leading-5 text-ivory-muted/70">
@@ -2123,12 +2216,14 @@ function SettingsTextarea({
   onChange,
   placeholder,
   rows = 4,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   rows?: number;
+  disabled?: boolean;
 }) {
   return (
     <label className="block">
@@ -2140,7 +2235,8 @@ function SettingsTextarea({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="w-full resize-none border border-ivory/10 bg-espresso/45 px-4 py-4 text-ivory outline-none transition placeholder:text-ivory-muted/40 focus:border-gold/70"
+        disabled={disabled}
+        className="w-full resize-none border border-ivory/10 bg-espresso/45 px-4 py-4 text-ivory outline-none transition placeholder:text-ivory-muted/40 focus:border-gold/70 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
@@ -2234,6 +2330,7 @@ function formatSeoTimestamp(value: string) {
 const tabs: { id: AdminTab; label: string }[] = [
   { id: "requests", label: "Requests" },
   { id: "songs", label: "Songs" },
+  { id: "page-intros", label: "Page Intros" },
   { id: "main", label: "Main Page" },
   { id: "about", label: "About" },
   { id: "education", label: "Education" },
@@ -2246,16 +2343,16 @@ const tabs: { id: AdminTab; label: string }[] = [
 ];
 
 const songsPerPage = 50;
-const standardHeroPageKeys = new Set<EditablePageKey>([
-  "education",
-  "music",
-  "performance",
-  "groups",
-  "rates",
-  "contact",
-  "requests",
-  "admin",
-]);
+const pageIntroLabels: Record<PageIntroPageKey, string> = {
+  education: "Education",
+  music: "Song Library",
+  performance: "Weddings & Events",
+  groups: "Groups",
+  rates: "Rates",
+  contact: "Contact",
+  requests: "Request Board",
+  admin: "Admin",
+};
 
 function readTabFromHash(): AdminTab | null {
   if (typeof window === "undefined") {
@@ -2312,8 +2409,17 @@ export function AdminDashboard() {
   const [isSavingUpcomingEvents, setIsSavingUpcomingEvents] = useState(false);
   const [siteDetails, setSiteDetails] =
     useState<SiteDetails>(defaultSiteDetails);
-  const [pageHeroContent, setPageHeroContent] =
-    useState<EditablePageContent[]>(defaultPageContent);
+  const [pageIntroContent, setPageIntroContent] =
+    useState<PageIntroContent>(defaultPageIntroContent);
+  const [browserPageIntroSnapshots, setBrowserPageIntroSnapshots] = useState<
+    BrowserPageIntroSnapshot[]
+  >([]);
+  const [pageIntroSource, setPageIntroSource] =
+    useState<PageIntroSource>("loading");
+  const [pageIntroRevision, setPageIntroRevision] = useState(0);
+  const [pageIntroPublishedAt, setPageIntroPublishedAt] = useState("");
+  const [pageIntroStatusMessage, setPageIntroStatusMessage] = useState("");
+  const [isPublishingPageIntros, setIsPublishingPageIntros] = useState(false);
   const [seoSettings, setSeoSettings] =
     useState<SeoSettings>(defaultSeoSettings);
   const [savedSeoSettings, setSavedSeoSettings] =
@@ -2359,11 +2465,7 @@ export function AdminDashboard() {
         readStoredValue(adminStorageKeys.siteDetails, defaultSiteDetails),
       ),
     );
-    setPageHeroContent(
-      normalizePageContent(
-        readStoredValue(pageContentStorageKey, defaultPageContent),
-      ),
-    );
+    setBrowserPageIntroSnapshots(readBrowserPageIntroSnapshots());
     const storedSeoSettings = normalizeSeoSettings(
       readStoredValue(seoStorageKey, defaultSeoSettings),
     );
@@ -2442,6 +2544,61 @@ export function AdminDashboard() {
     }
 
     loadPricing();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPageIntros() {
+      try {
+        const sharedPageIntros = await fetchAdminPageIntros();
+        if (!isMounted) {
+          return;
+        }
+
+        if (sharedPageIntros.exists && sharedPageIntros.pageIntros) {
+          const validation = validatePageIntroContent(
+            sharedPageIntros.pageIntros,
+          );
+          if (!validation.success) {
+            throw new Error(validation.errors.join(" "));
+          }
+
+          setPageIntroContent(validation.data);
+          setPageIntroRevision(sharedPageIntros.revision || 0);
+          setPageIntroPublishedAt(sharedPageIntros.publishedAt || "");
+          setPageIntroSource("published");
+          setPageIntroStatusMessage("");
+          return;
+        }
+
+        setPageIntroContent(defaultPageIntroContent);
+        setPageIntroRevision(0);
+        setPageIntroPublishedAt("");
+        setPageIntroSource("uninitialized");
+        setPageIntroStatusMessage(
+          "No shared PageIntro record exists. Source defaults are proposed; browser-local values are shown for comparison and have not been uploaded.",
+        );
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setPageIntroContent(defaultPageIntroContent);
+        setPageIntroSource("unavailable");
+        setPageIntroStatusMessage(
+          error instanceof Error
+            ? `Shared PageIntro content is unavailable: ${error.message}`
+            : "Shared PageIntro content is unavailable.",
+        );
+      }
+    }
+
+    loadPageIntros();
 
     return () => {
       isMounted = false;
@@ -3522,6 +3679,140 @@ export function AdminDashboard() {
     }));
   };
 
+  const updatePageIntro = (
+    key: PageIntroPageKey,
+    field: Exclude<keyof PageIntroPageContent, "key">,
+    value: string,
+  ) => {
+    setPageIntroContent((currentContent) => ({
+      pages: currentContent.pages.map((page) =>
+        page.key === key ? { ...page, [field]: value } : page,
+      ),
+    }));
+  };
+
+  const useSourcePageIntro = (key: PageIntroPageKey) => {
+    const source = getSourcePageIntro(key);
+    setPageIntroContent((currentContent) => ({
+      pages: currentContent.pages.map((page) =>
+        page.key === key ? { ...source } : page,
+      ),
+    }));
+    setPageIntroStatusMessage(
+      `${pageIntroLabels[key]} source defaults are loaded in the proposal. Nothing has been published yet.`,
+    );
+  };
+
+  const useBrowserPageIntro = (key: PageIntroPageKey) => {
+    const browserSnapshot = browserPageIntroSnapshots.find(
+      (snapshot) => snapshot.key === key,
+    );
+    if (!browserSnapshot?.value) {
+      return;
+    }
+    const browserValue = browserSnapshot.value;
+
+    setPageIntroContent((currentContent) => ({
+      pages: currentContent.pages.map((page) => {
+        if (page.key !== key) {
+          return page;
+        }
+
+        if (key === "performance" && pageIntroSource === "uninitialized") {
+          const source = getSourcePageIntro("performance");
+          return {
+            ...browserValue,
+            eyebrow: source.eyebrow,
+            title: source.title,
+            copy: source.copy,
+          };
+        }
+
+        return { ...browserValue };
+      }),
+    }));
+    setPageIntroStatusMessage(
+      key === "performance" && pageIntroSource === "uninitialized"
+        ? "Browser typography was copied into the Weddings & Events proposal. Its source wording was preserved to block the stale performance headline."
+        : `${pageIntroLabels[key]} browser values were copied into the proposal. The browser storage itself was not changed.`,
+    );
+  };
+
+  const publishPageIntros = async (expectedRevision: number) => {
+    const validation = validatePageIntroContent(pageIntroContent);
+    if (!validation.success) {
+      setPageIntroStatusMessage(validation.errors.join(" "));
+      return;
+    }
+
+    setIsPublishingPageIntros(true);
+    setPageIntroStatusMessage(
+      expectedRevision === 0
+        ? "Initializing and publishing PageIntro content..."
+        : "Saving and publishing PageIntro content...",
+    );
+
+    try {
+      const result = await publishAdminPageIntros(
+        validation.data,
+        expectedRevision,
+      );
+
+      if (!result.pageIntros || !result.revision) {
+        throw new Error("The PageIntro API returned an incomplete response.");
+      }
+
+      const publishedValidation = validatePageIntroContent(result.pageIntros);
+      if (!publishedValidation.success) {
+        throw new Error(publishedValidation.errors.join(" "));
+      }
+
+      setPageIntroContent(publishedValidation.data);
+      setPageIntroRevision(result.revision);
+      setPageIntroPublishedAt(result.publishedAt || "");
+      setPageIntroSource("published");
+      setPageIntroStatusMessage(
+        `PageIntro revision ${result.revision} is published globally.`,
+      );
+    } catch (error) {
+      setPageIntroStatusMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to publish PageIntro content.",
+      );
+    } finally {
+      setIsPublishingPageIntros(false);
+    }
+  };
+
+  const initializePageIntros = () => {
+    if (pageIntroSource !== "uninitialized") {
+      return;
+    }
+
+    publishPageIntros(0);
+  };
+
+  const savePageIntros = () => {
+    if (pageIntroSource !== "published") {
+      setPageIntroStatusMessage(
+        "Initialize shared PageIntro content before using Save & Publish.",
+      );
+      return;
+    }
+
+    publishPageIntros(pageIntroRevision);
+  };
+
+  const loadAllPageIntroSourceDefaults = () => {
+    setPageIntroContent(defaultPageIntroContent);
+    setPageIntroStatusMessage(
+      pageIntroSource === "published"
+        ? "Source defaults are loaded in the editor. Use Save & Publish to make them public."
+        : "Source defaults are loaded in the initial proposal. Browser storage was not changed.",
+    );
+  };
+
   const savePricing = async () => {
     if (pricingSource !== "published") {
       setPricingStatusMessage(
@@ -3770,7 +4061,6 @@ export function AdminDashboard() {
 
   const saveSiteDetails = () => {
     saveStoredValue(adminStorageKeys.siteDetails, siteDetails);
-    saveStoredValue(pageContentStorageKey, pageHeroContent);
     saveStoredValue(seoStorageKey, seoSettings);
     setSavedSeoSettings(seoSettings);
     showSaved("Global settings saved in this browser.");
@@ -3778,25 +4068,11 @@ export function AdminDashboard() {
 
   const resetSiteDetails = () => {
     setSiteDetails(defaultSiteDetails);
-    setPageHeroContent(defaultPageContent);
     setSeoSettings(defaultSeoSettings);
     setSavedSeoSettings(defaultSeoSettings);
     window.localStorage.removeItem(adminStorageKeys.siteDetails);
-    window.localStorage.removeItem(pageContentStorageKey);
     window.localStorage.removeItem(seoStorageKey);
     showSaved("Global settings reset to defaults.");
-  };
-
-  const updatePageHeroContent = (
-    key: EditablePageKey,
-    field: keyof EditablePageContent,
-    value: string,
-  ) => {
-    setPageHeroContent((currentPages) =>
-      currentPages.map((page) =>
-        page.key === key ? { ...page, [field]: value } : page,
-      ),
-    );
   };
 
   const saveSeoSettings = () => {
@@ -4175,6 +4451,228 @@ export function AdminDashboard() {
             </div>
 
             {renderSongPagination()}
+          </div>
+        ) : null}
+
+        {activeTab === "page-intros" ? (
+          <div className="space-y-6">
+            <div className="elegant-surface border border-ivory/10 p-5">
+              <p className="text-xs uppercase tracking-[0.24em] text-gold/80">
+                Shared Page Intro Status
+              </p>
+              <p className="mt-3 text-sm leading-7 text-ivory-muted">
+                {pageIntroSource === "loading"
+                  ? "Loading shared PageIntro content..."
+                  : pageIntroSource === "published"
+                    ? `Supabase is authoritative. Published revision ${pageIntroRevision}${
+                        pageIntroPublishedAt
+                          ? ` on ${new Date(pageIntroPublishedAt).toLocaleString()}`
+                          : ""
+                      }.`
+                    : pageIntroSource === "uninitialized"
+                      ? "No shared PageIntro record exists. Review the source, browser-local, and proposed values below before explicitly initializing publication."
+                      : "Shared PageIntro content could not be loaded. Publishing is disabled until the server connection and SQL migration are available."}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-ivory-muted">
+                Browser-local values are comparison-only. This editor never
+                deletes, changes, or silently uploads the existing
+                winspiration.admin.pageContent value.
+              </p>
+              {pageIntroStatusMessage ? (
+                <p className="mt-3 text-sm leading-7 text-gold/85" role="status">
+                  {pageIntroStatusMessage}
+                </p>
+              ) : null}
+              <div className="mt-5 flex flex-wrap gap-2">
+                {pageIntroSource === "uninitialized" ? (
+                  <button
+                    type="button"
+                    onClick={initializePageIntros}
+                    disabled={isPublishingPageIntros}
+                    className="bg-ivory px-4 py-3 text-xs uppercase tracking-[0.18em] text-espresso transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isPublishingPageIntros
+                      ? "Publishing..."
+                      : "Initialize Published Page Intros"}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={savePageIntros}
+                  disabled={
+                    pageIntroSource !== "published" || isPublishingPageIntros
+                  }
+                  className="bg-ivory px-4 py-3 text-xs uppercase tracking-[0.18em] text-espresso transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isPublishingPageIntros
+                    ? "Publishing..."
+                    : "Save & Publish Page Intros"}
+                </button>
+                <button
+                  type="button"
+                  onClick={loadAllPageIntroSourceDefaults}
+                  disabled={pageIntroSource === "loading"}
+                  className="border border-ivory/10 px-4 py-3 text-xs uppercase tracking-[0.18em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Load All Source Defaults
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-5">
+              {pageIntroContent.pages.map((page) => {
+                const source = getSourcePageIntro(page.key);
+                const browserSnapshot = browserPageIntroSnapshots.find(
+                  (snapshot) => snapshot.key === page.key,
+                );
+                const browserValue = browserSnapshot?.value;
+                const lockInitialPerformanceWording =
+                  pageIntroSource === "uninitialized" &&
+                  page.key === "performance";
+
+                return (
+                  <article
+                    key={page.key}
+                    className="elegant-surface grid gap-5 border border-ivory/10 p-5"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.24em] text-gold/80">
+                          {pageIntroLabels[page.key]}
+                        </p>
+                        <p className="mt-2 text-xs uppercase tracking-[0.16em] text-ivory-muted/65">
+                          Page key: {page.key}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => useSourcePageIntro(page.key)}
+                          className="border border-ivory/10 px-3 py-2 text-xs uppercase tracking-[0.16em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory"
+                        >
+                          Use Source Default
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => useBrowserPageIntro(page.key)}
+                          disabled={!browserValue}
+                          className="border border-ivory/10 px-3 py-2 text-xs uppercase tracking-[0.16em] text-ivory-muted transition hover:border-gold/50 hover:text-ivory disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {lockInitialPerformanceWording
+                            ? "Use Browser Typography Only"
+                            : "Use Browser Value"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {lockInitialPerformanceWording ? (
+                      <p className="border border-gold/25 bg-gold/[0.06] p-3 text-sm leading-7 text-ivory-muted">
+                        Initial publication locks the Weddings & Events eyebrow
+                        and title to the current source wording so the stale
+                        “Live violin music shaped...” browser headline cannot be
+                        published. Supporting copy starts from source and can be
+                        deliberately edited before initialization.
+                      </p>
+                    ) : null}
+
+                    <div className="grid gap-4 xl:grid-cols-3">
+                      <div className="border border-ivory/10 bg-espresso/30 p-4">
+                        <p className="text-xs uppercase tracking-[0.18em] text-gold/75">
+                          1. Current Source Default
+                        </p>
+                        <dl className="mt-4 grid gap-3 text-sm leading-6 text-ivory-muted">
+                          <div><dt className="text-ivory">Eyebrow</dt><dd>{source.eyebrow}</dd></div>
+                          <div><dt className="text-ivory">Title</dt><dd>{source.title}</dd></div>
+                          <div><dt className="text-ivory">Supporting copy</dt><dd>{source.copy || "(empty)"}</dd></div>
+                          <div><dt className="text-ivory">Title typography</dt><dd>{source.titleSize || "default size"} / {source.titleColor || "default color"}</dd></div>
+                          <div><dt className="text-ivory">Copy typography</dt><dd>{source.subtitleSize || "default size"} / {source.subtitleColor || "default color"}</dd></div>
+                        </dl>
+                      </div>
+
+                      <div className="border border-ivory/10 bg-espresso/30 p-4">
+                        <p className="text-xs uppercase tracking-[0.18em] text-gold/75">
+                          2. Current Browser-local Value
+                        </p>
+                        {browserValue ? (
+                          <dl className="mt-4 grid gap-3 text-sm leading-6 text-ivory-muted">
+                            <div><dt className="text-ivory">Eyebrow</dt><dd>{browserValue.eyebrow}</dd></div>
+                            <div><dt className="text-ivory">Title</dt><dd>{browserValue.title}</dd></div>
+                            <div><dt className="text-ivory">Supporting copy</dt><dd>{browserValue.copy || "(empty)"}</dd></div>
+                            <div><dt className="text-ivory">Title typography</dt><dd>{browserValue.titleSize || "default size"} / {browserValue.titleColor || "default color"}</dd></div>
+                            <div><dt className="text-ivory">Copy typography</dt><dd>{browserValue.subtitleSize || "default size"} / {browserValue.subtitleColor || "default color"}</dd></div>
+                          </dl>
+                        ) : (
+                          <p className="mt-4 text-sm leading-7 text-ivory-muted">
+                            No saved browser-local record exists for this page.
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="grid gap-4 border border-gold/25 bg-gold/[0.045] p-4">
+                        <p className="text-xs uppercase tracking-[0.18em] text-gold/75">
+                          3. {pageIntroSource === "published" ? "Next Published Value" : "Proposed Initial Publication"}
+                        </p>
+                        <SettingsInput
+                          label="Eyebrow"
+                          value={page.eyebrow}
+                          onChange={(value) =>
+                            updatePageIntro(page.key, "eyebrow", value)
+                          }
+                          disabled={lockInitialPerformanceWording}
+                        />
+                        <SettingsTextarea
+                          label="Title"
+                          value={page.title}
+                          onChange={(value) =>
+                            updatePageIntro(page.key, "title", value)
+                          }
+                          rows={3}
+                          disabled={lockInitialPerformanceWording}
+                        />
+                        <SettingsTextarea
+                          label="Supporting Copy"
+                          value={page.copy}
+                          onChange={(value) =>
+                            updatePageIntro(page.key, "copy", value)
+                          }
+                          rows={5}
+                        />
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <SettingsInput
+                            label="Title Font Size"
+                            value={page.titleSize}
+                            onChange={(value) =>
+                              updatePageIntro(page.key, "titleSize", value)
+                            }
+                          />
+                          <SettingsInput
+                            label="Title Color"
+                            value={page.titleColor}
+                            onChange={(value) =>
+                              updatePageIntro(page.key, "titleColor", value)
+                            }
+                          />
+                          <SettingsInput
+                            label="Copy Font Size"
+                            value={page.subtitleSize}
+                            onChange={(value) =>
+                              updatePageIntro(page.key, "subtitleSize", value)
+                            }
+                          />
+                          <SettingsInput
+                            label="Copy Color"
+                            value={page.subtitleColor}
+                            onChange={(value) =>
+                              updatePageIntro(page.key, "subtitleColor", value)
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         ) : null}
 
@@ -7144,61 +7642,6 @@ export function AdminDashboard() {
                 }
                 rows={3}
               />
-            </SettingsAccordion>
-
-            <SettingsAccordion
-              title="Page Hero Typography"
-              description="Adjust the visible title and subtitle size or color for standard page hero areas. Use values like 72px, 4.5rem, or #b85f2e."
-            >
-              <div className="grid gap-4">
-                {pageHeroContent
-                  .filter((page) => standardHeroPageKeys.has(page.key))
-                  .map((page) => (
-                  <article
-                    key={page.key}
-                    className="grid gap-4 border border-ivory/10 bg-espresso/35 p-4"
-                  >
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-gold/80">
-                        {page.label}
-                      </p>
-                      <p className="mt-2 text-sm leading-6 text-ivory-muted">
-                        {page.title}
-                      </p>
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-4">
-                      <SettingsInput
-                        label="Title Font Size"
-                        value={page.titleSize || ""}
-                        onChange={(value) =>
-                          updatePageHeroContent(page.key, "titleSize", value)
-                        }
-                      />
-                      <SettingsInput
-                        label="Title Color"
-                        value={page.titleColor || ""}
-                        onChange={(value) =>
-                          updatePageHeroContent(page.key, "titleColor", value)
-                        }
-                      />
-                      <SettingsInput
-                        label="Subtitle Font Size"
-                        value={page.subtitleSize || ""}
-                        onChange={(value) =>
-                          updatePageHeroContent(page.key, "subtitleSize", value)
-                        }
-                      />
-                      <SettingsInput
-                        label="Subtitle Color"
-                        value={page.subtitleColor || ""}
-                        onChange={(value) =>
-                          updatePageHeroContent(page.key, "subtitleColor", value)
-                        }
-                      />
-                    </div>
-                  </article>
-                ))}
-              </div>
             </SettingsAccordion>
 
             <SettingsAccordion

@@ -24,6 +24,40 @@ export type EditablePageContent = {
   subtitleColor?: string;
 };
 
+export const pageIntroPageKeys = [
+  "education",
+  "music",
+  "performance",
+  "groups",
+  "rates",
+  "contact",
+  "requests",
+  "admin",
+] as const;
+
+export type PageIntroPageKey = (typeof pageIntroPageKeys)[number];
+
+export type PageIntroPageContent = {
+  key: PageIntroPageKey;
+  eyebrow: string;
+  title: string;
+  copy: string;
+  titleSize: string;
+  titleColor: string;
+  subtitleSize: string;
+  subtitleColor: string;
+};
+
+export type PageIntroContent = {
+  pages: PageIntroPageContent[];
+};
+
+export type PageIntroValidationResult =
+  | { success: true; data: PageIntroContent }
+  | { success: false; errors: string[] };
+
+export const pageIntroSchemaVersion = 1;
+
 export type SeoSettings = {
   siteTitle: string;
   defaultMetaDescription: string;
@@ -234,6 +268,194 @@ export const defaultPageContent: EditablePageContent[] = [
     subtitleColor: "",
   },
 ];
+
+const pageIntroPageKeySet = new Set<string>(pageIntroPageKeys);
+const maximumPageIntroPayloadBytes = 64 * 1024;
+
+function sourcePageIntroFromLegacyPage(
+  page: EditablePageContent,
+): PageIntroPageContent {
+  return {
+    key: page.key as PageIntroPageKey,
+    eyebrow: page.eyebrow,
+    title: page.title,
+    copy: page.copy,
+    titleSize: page.titleSize || "",
+    titleColor: page.titleColor || "",
+    subtitleSize: page.subtitleSize || "",
+    subtitleColor: page.subtitleColor || "",
+  };
+}
+
+export const defaultPageIntroContent: PageIntroContent = {
+  pages: pageIntroPageKeys.map((key) => {
+    const page = defaultPageContent.find((item) => item.key === key);
+
+    if (!page) {
+      throw new Error(`Missing source PageIntro default for ${key}.`);
+    }
+
+    return sourcePageIntroFromLegacyPage(page);
+  }),
+};
+
+export function getSourcePageIntro(
+  key: PageIntroPageKey,
+): PageIntroPageContent {
+  const page = defaultPageIntroContent.pages.find((item) => item.key === key);
+
+  if (!page) {
+    throw new Error(`Missing source PageIntro default for ${key}.`);
+  }
+
+  return page;
+}
+
+function validatePageIntroText(options: {
+  value: unknown;
+  label: string;
+  maximumLength: number;
+  allowEmpty?: boolean;
+  errors: string[];
+}) {
+  if (typeof options.value !== "string") {
+    options.errors.push(`${options.label} must be text.`);
+    return "";
+  }
+
+  const normalizedValue = options.value.trim();
+
+  if (!options.allowEmpty && !normalizedValue) {
+    options.errors.push(`${options.label} cannot be empty.`);
+  } else if (normalizedValue.length > options.maximumLength) {
+    options.errors.push(
+      `${options.label} cannot exceed ${options.maximumLength} characters.`,
+    );
+  }
+
+  return normalizedValue;
+}
+
+export function validatePageIntroContent(
+  value: unknown,
+): PageIntroValidationResult {
+  const errors: string[] = [];
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { success: false, errors: ["PageIntro content must be an object."] };
+  }
+
+  let payloadSize = Number.POSITIVE_INFINITY;
+  try {
+    payloadSize = new TextEncoder().encode(JSON.stringify(value)).length;
+  } catch {
+    errors.push("PageIntro content must be valid JSON data.");
+  }
+
+  if (payloadSize > maximumPageIntroPayloadBytes) {
+    errors.push(
+      `PageIntro content cannot exceed ${maximumPageIntroPayloadBytes} bytes.`,
+    );
+  }
+
+  const rawPages = (value as Record<string, unknown>).pages;
+  if (!Array.isArray(rawPages)) {
+    return {
+      success: false,
+      errors: [...errors, "PageIntro pages must be an array."],
+    };
+  }
+
+  if (rawPages.length !== pageIntroPageKeys.length) {
+    errors.push(
+      `PageIntro content must contain exactly ${pageIntroPageKeys.length} pages.`,
+    );
+  }
+
+  const recordsByKey = new Map<string, Record<string, unknown>>();
+  rawPages.forEach((page, index) => {
+    if (!page || typeof page !== "object" || Array.isArray(page)) {
+      errors.push(`PageIntro page ${index + 1} must be an object.`);
+      return;
+    }
+
+    const record = page as Record<string, unknown>;
+    const key = typeof record.key === "string" ? record.key : "";
+    if (!pageIntroPageKeySet.has(key)) {
+      errors.push(`PageIntro page ${index + 1} has an unsupported key.`);
+      return;
+    }
+
+    if (recordsByKey.has(key)) {
+      errors.push(`PageIntro key ${key} appears more than once.`);
+      return;
+    }
+
+    recordsByKey.set(key, record);
+  });
+
+  const pages = pageIntroPageKeys.map((key) => {
+    const record = recordsByKey.get(key);
+    if (!record) {
+      errors.push(`PageIntro content is missing the ${key} page.`);
+    }
+
+    return {
+      key,
+      eyebrow: validatePageIntroText({
+        value: record?.eyebrow,
+        label: `${key} eyebrow`,
+        maximumLength: 120,
+        errors,
+      }),
+      title: validatePageIntroText({
+        value: record?.title,
+        label: `${key} title`,
+        maximumLength: 240,
+        errors,
+      }),
+      copy: validatePageIntroText({
+        value: record?.copy,
+        label: `${key} supporting copy`,
+        maximumLength: 1200,
+        allowEmpty: true,
+        errors,
+      }),
+      titleSize: validatePageIntroText({
+        value: record?.titleSize,
+        label: `${key} title size`,
+        maximumLength: 80,
+        allowEmpty: true,
+        errors,
+      }),
+      titleColor: validatePageIntroText({
+        value: record?.titleColor,
+        label: `${key} title color`,
+        maximumLength: 80,
+        allowEmpty: true,
+        errors,
+      }),
+      subtitleSize: validatePageIntroText({
+        value: record?.subtitleSize,
+        label: `${key} subtitle size`,
+        maximumLength: 80,
+        allowEmpty: true,
+        errors,
+      }),
+      subtitleColor: validatePageIntroText({
+        value: record?.subtitleColor,
+        label: `${key} subtitle color`,
+        maximumLength: 80,
+        allowEmpty: true,
+        errors,
+      }),
+    };
+  });
+
+  return errors.length > 0
+    ? { success: false, errors }
+    : { success: true, data: { pages } };
+}
 
 export const defaultSeoSettings: SeoSettings = {
   siteTitle: "William Samorey | Wedding Violinist in Minnesota",

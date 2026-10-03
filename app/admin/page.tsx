@@ -3,6 +3,7 @@ import { AdminDashboard } from "@/components/AdminDashboard";
 import { PageIntro } from "@/components/PageIntro";
 import { AdminSignOutButton } from "@/components/AdminSignOutButton";
 import { getAdminAccess } from "@/lib/adminAuth";
+import { readPublishedPageIntro } from "@/lib/supabasePageIntros";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +14,13 @@ export default async function AdminPage() {
     redirect("/access-denied");
   }
 
+  const pageIntro = await readPublishedPageIntro("admin");
+
   return (
     <main className="min-h-screen bg-espresso text-ivory">
       <PageIntro
         pageKey="admin"
+        content={pageIntro}
         eyebrow="Admin"
         title="Private controls for requests, repertoire, pricing, and site details."
         copy="This section is designed as the editing home for William Samorey and Winspiration Studio LLC."

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { EducationContent } from "@/components/EducationContent";
 import { PageIntro } from "@/components/PageIntro";
+import { readPublishedPageIntro } from "@/lib/supabasePageIntros";
 
 export const metadata: Metadata = {
   title: "Education | William Samorey",
@@ -11,11 +12,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function EducationPage() {
+export default async function EducationPage() {
+  const pageIntro = await readPublishedPageIntro("education");
+
   return (
     <main className="min-h-screen bg-espresso text-ivory">
       <PageIntro
         pageKey="education"
+        content={pageIntro}
         eyebrow="Education"
         title="Private violin lessons shaped around sound, patience, and progress."
         copy="A practical teaching home for beginners, advancing students, adult players, and families building a thoughtful musical routine."

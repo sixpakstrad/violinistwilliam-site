@@ -1,16 +1,13 @@
-"use client";
-
-import { useEffect, useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 import { Reveal } from "@/components/Reveal";
 import {
-  defaultPageContent,
-  pageContentStorageKey,
-  type EditablePageContent,
-  type EditablePageKey,
+  type PageIntroPageContent,
+  type PageIntroPageKey,
 } from "@/data/pageContent";
 
 type PageIntroProps = {
-  pageKey?: EditablePageKey;
+  pageKey?: PageIntroPageKey;
+  content?: PageIntroPageContent;
   eyebrow: string;
   title: string;
   copy: string;
@@ -19,22 +16,6 @@ type PageIntroProps = {
   subtitleSize?: string;
   subtitleColor?: string;
 };
-
-function findPageContent(pageKey: EditablePageKey) {
-  try {
-    const raw = window.localStorage.getItem(pageContentStorageKey);
-    const pages = raw
-      ? (JSON.parse(raw) as EditablePageContent[])
-      : defaultPageContent;
-
-    const page = pages.find((item) => item.key === pageKey);
-    const fallback = defaultPageContent.find((item) => item.key === pageKey);
-
-    return fallback ? { ...fallback, ...page } : page;
-  } catch {
-    return defaultPageContent.find((page) => page.key === pageKey);
-  }
-}
 
 function textStyle(size?: string, color?: string): CSSProperties | undefined {
   const style: CSSProperties = {};
@@ -50,6 +31,7 @@ function textStyle(size?: string, color?: string): CSSProperties | undefined {
 
 export function PageIntro({
   pageKey,
+  content,
   eyebrow,
   title,
   copy,
@@ -58,24 +40,15 @@ export function PageIntro({
   subtitleSize,
   subtitleColor,
 }: PageIntroProps) {
-  const [editableContent, setEditableContent] =
-    useState<EditablePageContent | null>(null);
-
-  useEffect(() => {
-    if (!pageKey) {
-      return;
-    }
-
-    setEditableContent(findPageContent(pageKey) ?? null);
-  }, [pageKey]);
-
-  const displayEyebrow = editableContent?.eyebrow ?? eyebrow;
-  const displayTitle = editableContent?.title ?? title;
-  const displayCopy = editableContent?.copy ?? copy;
-  const displayTitleSize = editableContent?.titleSize ?? titleSize;
-  const displayTitleColor = editableContent?.titleColor ?? titleColor;
-  const displaySubtitleSize = editableContent?.subtitleSize ?? subtitleSize;
-  const displaySubtitleColor = editableContent?.subtitleColor ?? subtitleColor;
+  const publishedContent =
+    pageKey && content?.key === pageKey ? content : undefined;
+  const displayEyebrow = publishedContent?.eyebrow ?? eyebrow;
+  const displayTitle = publishedContent?.title ?? title;
+  const displayCopy = publishedContent?.copy ?? copy;
+  const displayTitleSize = publishedContent?.titleSize ?? titleSize;
+  const displayTitleColor = publishedContent?.titleColor ?? titleColor;
+  const displaySubtitleSize = publishedContent?.subtitleSize ?? subtitleSize;
+  const displaySubtitleColor = publishedContent?.subtitleColor ?? subtitleColor;
 
   return (
     <section className="relative overflow-hidden px-5 pb-8 pt-28 sm:px-8 md:px-12 md:pb-12 md:pt-32 lg:px-16">

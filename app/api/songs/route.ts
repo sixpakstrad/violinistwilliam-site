@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 
 import { readSupabaseSongs, toPublicSong } from "@/lib/supabaseSongs";
+import { readSongTaxonomy } from "@/lib/supabaseSongTaxonomy";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const songs = await readSupabaseSongs({ publicOnly: true });
+    const taxonomy = await readSongTaxonomy();
+    const songs = await readSupabaseSongs({ publicOnly: true, taxonomy });
     return NextResponse.json({
       songs: songs.map(toPublicSong),
+      taxonomy,
     });
   } catch (error) {
     console.error("Public songs API error:", error);

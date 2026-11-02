@@ -1,7 +1,14 @@
+import type { RepertoireSong } from "@/data/repertoire";
 import {
-  normalizeRepertoireGenre,
-  type RepertoireSong,
-} from "@/data/repertoire";
+  normalizeCustomCollections,
+  normalizeSongGenres,
+  type SongTaxonomy,
+} from "@/data/songTaxonomy";
+import { supabaseRest } from "@/lib/supabaseRest";
+import {
+  readSongTaxonomy,
+  songTaxonomySetupMessage,
+} from "@/lib/supabaseSongTaxonomy";
 
 const publicSongColumns = "*";
 
@@ -11,6 +18,7 @@ export type SupabaseSongRow = {
   artist: string | null;
   category: string | null;
   genres: string[] | string | null;
+  custom_collections?: string[];
   wedding: boolean | null;
   funeral: boolean | null;
   party: boolean | null;
@@ -31,19 +39,13 @@ export type SupabaseSongRow = {
   sort_order: number | null;
 };
 
-type SupabaseRequestOptions = {
-  method?: string;
-  query?: string;
-  body?: unknown;
-  headers?: Record<string, string>;
-};
-
 const writableSongColumns = [
   "id",
   "title",
   "artist",
   "category",
   "genres",
+  "custom_collections",
   "wedding",
   "funeral",
   "party",
@@ -64,114 +66,41 @@ const writableSongColumns = [
   "sort_order",
 ];
 
-function getSupabaseConfig() {
-  const supabaseUrl =
-    process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-
-  if (!supabaseUrl) {
-    throw new Error("Missing SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL.");
-  }
-
-  if (!serviceRoleKey) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY.");
-  }
-
-  return {
-    supabaseUrl: supabaseUrl.replace(/\/+$/, ""),
-    serviceRoleKey,
-    schema: process.env.SUPABASE_SCHEMA || "public",
-  };
-}
-
-async function supabaseRest<T>(
-  table: string,
-  options: SupabaseRequestOptions = {},
-): Promise<T | null> {
-  const { supabaseUrl, serviceRoleKey, schema } = getSupabaseConfig();
-  const headers: Record<string, string> = {
-    apikey: serviceRoleKey,
-    Authorization: `Bearer ${serviceRoleKey}`,
-    "Content-Type": "application/json",
-    ...options.headers,
-  };
-
-  if (schema !== "public") {
-    headers["Accept-Profile"] = schema;
-    headers["Content-Profile"] = schema;
-  }
-
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/${encodeURIComponent(table)}${options.query || ""}`,
-    {
-      method: options.method || "GET",
-      headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
-      cache: "no-store",
-    },
-  );
-  const responseText = await response.text();
-  let responseBody: unknown = null;
-
-  if (responseText.trim()) {
-    try {
-      responseBody = JSON.parse(responseText);
-    } catch {
-      throw new Error(
-        `Supabase returned invalid JSON (${response.status} ${response.statusText}): ${responseText}`,
-      );
-    }
-  }
-
-  if (!response.ok) {
-    const details =
-      responseBody && typeof responseBody === "object"
-        ? JSON.stringify(responseBody)
-        : responseText || "No response body.";
-    throw new Error(
-      `Supabase request failed (${response.status} ${response.statusText}): ${details}`,
-    );
-  }
-
-  return responseBody as T | null;
-}
-
 function normalizeText(value: unknown) {
   return String(value ?? "").trim();
 }
 
-function parseGenres(value: SupabaseSongRow["genres"], fallback = "") {
+function parseGenres(
+  value: SupabaseSongRow["genres"],
+  fallback = "",
+  knownGenres?: readonly string[],
+) {
   if (Array.isArray(value)) {
-    return value
-      .map(String)
-      .map(normalizeRepertoireGenre)
-      .filter(Boolean);
+    return normalizeSongGenres(value.map(String), knownGenres);
   }
 
   const raw = normalizeText(value);
   if (!raw) {
-    return fallback ? [fallback] : [];
+    return fallback ? normalizeSongGenres([fallback], knownGenres) : [];
   }
 
   if (raw.startsWith("{") && raw.endsWith("}")) {
-    return raw
-      .slice(1, -1)
-      .split(",")
-      .map((genre) => normalizeRepertoireGenre(genre.replace(/^"|"$/g, "")))
-      .filter(Boolean);
+    return normalizeSongGenres(
+      raw.slice(1, -1).split(",").map((genre) => genre.replace(/^"|"$/g, "")),
+      knownGenres,
+    );
   }
 
-  return raw
-    .split(/[;|,]/)
-    .map(normalizeRepertoireGenre)
-    .filter(Boolean);
+  return normalizeSongGenres(raw.split(/[;|,]/), knownGenres);
 }
 
 export function mapSupabaseSongToRepertoireSong(
   row: SupabaseSongRow,
+  knownGenres?: readonly string[],
+  knownCollections?: readonly string[],
 ): RepertoireSong {
   const category = normalizeText(row.category);
-  const genres = parseGenres(row.genres, category);
+  const genres = parseGenres(row.genres, category, knownGenres);
   const isFavorite = Boolean(row.wills_favorite);
 
   return {
@@ -182,6 +111,9 @@ export function mapSupabaseSongToRepertoireSong(
     source: category,
     genre: genres[0] || category || "Pop",
     genres,
+    customCollections: Array.isArray(row.custom_collections)
+      ? normalizeCustomCollections(row.custom_collections.map(String), knownCollections)
+      : [],
     notes: normalizeText(row.private_notes ?? row.notes),
     sheetMusic: normalizeText(row.sheet_music_location),
     backingTrack: normalizeText(row.backing_track_location),
@@ -205,11 +137,14 @@ export function mapSupabaseSongToRepertoireSong(
 
 export function mapRepertoireSongToSupabaseRow(
   song: RepertoireSong,
+  knownGenres?: readonly string[],
+  knownCollections?: readonly string[],
 ): SupabaseSongRow {
   const category = normalizeText(song.category || song.source);
-  const genres = Array.isArray(song.genres)
-    ? song.genres.map(String).map(normalizeRepertoireGenre).filter(Boolean)
-    : [normalizeRepertoireGenre(song.genre || category)].filter(Boolean);
+  const genres = normalizeSongGenres(
+    Array.isArray(song.genres) ? song.genres.map(String) : [song.genre || category],
+    knownGenres,
+  );
 
   return {
     id: song.id,
@@ -217,6 +152,9 @@ export function mapRepertoireSongToSupabaseRow(
     artist: normalizeText(song.artist),
     category,
     genres,
+    custom_collections: song.customCollections === undefined
+      ? undefined
+      : normalizeCustomCollections(song.customCollections, knownCollections),
     wedding: Boolean(song.weddingRecommended),
     funeral: Boolean(song.funeralRecommended),
     party: Boolean(song.partyRecommended),
@@ -240,9 +178,12 @@ export function mapRepertoireSongToSupabaseRow(
 
 export async function readSupabaseSongs({
   publicOnly = false,
+  taxonomy,
 }: {
   publicOnly?: boolean;
+  taxonomy?: SongTaxonomy;
 } = {}) {
+  const catalogue = taxonomy || (await readSongTaxonomy());
   const columns = publicOnly ? publicSongColumns : "*";
   const query = [
     `?select=${encodeURIComponent(columns)}`,
@@ -251,7 +192,9 @@ export async function readSupabaseSongs({
   ].join("");
   const rows = await supabaseRest<SupabaseSongRow[]>("songs", { query });
 
-  return (rows || []).map(mapSupabaseSongToRepertoireSong);
+  return (rows || []).map((row) =>
+    mapSupabaseSongToRepertoireSong(row, catalogue.genres, catalogue.collections),
+  );
 }
 
 export async function readSupabaseSongById(id: string | number) {
@@ -273,8 +216,16 @@ async function readSupabaseSongColumns() {
     query: "?select=*&limit=1",
   });
   const firstRow = rows?.[0] || {};
+  if (rows?.length) return new Set(Object.keys(firstRow));
 
-  return new Set(Object.keys(firstRow));
+  const schema = await supabaseRest<{
+    definitions?: { songs?: { properties?: Record<string, unknown> } };
+  }>("");
+  const columns = Object.keys(schema?.definitions?.songs?.properties || {});
+  if (columns.length === 0) {
+    throw new Error("Unable to read the songs table columns. Save was not sent.");
+  }
+  return new Set(columns);
 }
 
 function filterExistingColumns(
@@ -292,9 +243,19 @@ function filterExistingColumns(
 }
 
 export async function saveSupabaseSongs(songs: RepertoireSong[]) {
+  if (songs.length === 0) return;
+  const taxonomy = await readSongTaxonomy();
   const existingColumns = await readSupabaseSongColumns();
+  if (
+    !existingColumns.has("custom_collections") &&
+    songs.some((song) => song.customCollections?.length)
+  ) {
+    throw new Error(songTaxonomySetupMessage);
+  }
   const rows = songs
-    .map(mapRepertoireSongToSupabaseRow)
+    .map((song) =>
+      mapRepertoireSongToSupabaseRow(song, taxonomy.genres, taxonomy.collections),
+    )
     .map((row) => filterExistingColumns(row, existingColumns));
   const rowsWithId = rows.filter((row) => row.id !== undefined && row.id !== "");
   const rowsWithoutId = rows.filter(
@@ -349,6 +310,7 @@ export function toPublicSong(song: RepertoireSong) {
     artist: song.artist,
     category: song.category || song.source,
     genres: song.genres || [],
+    customCollections: song.customCollections || [],
     wedding: song.weddingRecommended,
     funeral: song.funeralRecommended,
     party: song.partyRecommended,

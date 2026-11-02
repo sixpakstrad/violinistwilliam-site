@@ -10,6 +10,7 @@ import {
 } from "react";
 import { AdminBackupExport } from "@/components/AdminBackupExport";
 import { SongRequestBoard } from "@/components/SongRequestBoard";
+import { SongTaxonomyControls } from "@/components/SongTaxonomyControls";
 import {
   adminStorageKeys,
   defaultSiteDetails,
@@ -33,10 +34,17 @@ import {
   type SeoSettings,
 } from "@/data/pageContent";
 import {
-  normalizeRepertoireGenre,
   repertoireGenres,
   type RepertoireSong,
 } from "@/data/repertoire";
+import {
+  builtInSongCollections,
+  defaultSongTaxonomy,
+  getSongCollections,
+  isBuiltInCollection,
+  uniqueTaxonomyNames,
+  type SongTaxonomy,
+} from "@/data/songTaxonomy";
 import {
   defaultAddOns,
   defaultEnsembleGuide,
@@ -154,8 +162,8 @@ function parseAdminLineInput(value: string) {
 function normalizeSong(song: StoredRepertoireSong | null, index: number): RepertoireSong {
   const category = song?.category || song?.source || "";
   const genres = Array.isArray(song?.genres)
-    ? song.genres.map(normalizeRepertoireGenre).filter(Boolean)
-    : [normalizeRepertoireGenre(song?.genre || category || "Pop")].filter(Boolean);
+    ? song.genres.map((genre) => genre.trim()).filter(Boolean)
+    : [song?.genre || category || "Pop"].filter(Boolean);
   const isFavorite = song?.wills_favorite ?? song?.favoriteRecommended ?? false;
 
   return {
@@ -166,6 +174,7 @@ function normalizeSong(song: StoredRepertoireSong | null, index: number): Repert
     source: song?.source || category,
     genre: genres[0] || song?.genre || category || "Pop",
     genres,
+    customCollections: Array.isArray(song?.customCollections) ? uniqueTaxonomyNames(song.customCollections) : [],
     notes: song?.notes || song?.private_notes || "",
     sheetMusic: song?.sheetMusic || song?.sheet_music_location || "",
     backingTrack: song?.backingTrack || song?.backing_track_location || "",
@@ -483,14 +492,12 @@ function saveStoredValue<T>(key: string, value: T) {
 
 const songEditorGenreOptions: string[] = [...repertoireGenres];
 
-const songEditorGenreOptionSet = new Set<string>(songEditorGenreOptions);
-
 function getSongEditorGenres(song: RepertoireSong) {
   if (Array.isArray(song.genres) && song.genres.length > 0) {
-    return song.genres.map(normalizeRepertoireGenre).filter(Boolean);
+    return song.genres.filter(Boolean);
   }
 
-  return song.genre ? [normalizeRepertoireGenre(song.genre)].filter(Boolean) : [];
+  return song.genre ? [song.genre] : [];
 }
 
 function getGenreDropdownSummary(genres: string[]) {
@@ -505,13 +512,13 @@ function getGenreDropdownSummary(genres: string[]) {
   return `${genres.slice(0, 2).join(", ")} +${genres.length - 2}`;
 }
 
-function getGenreDropdownOptions(genres: string[]) {
+function getGenreDropdownOptions(genres: string[], options: string[]) {
   const savedGenres = genres.filter(
-    (genre) => !songEditorGenreOptionSet.has(genre),
+    (genre) => !options.includes(genre),
   );
 
   return {
-    standard: songEditorGenreOptions,
+    standard: options,
     saved: savedGenres,
   };
 }
@@ -586,19 +593,7 @@ function getExportSongGenres(song: RepertoireSong) {
 }
 
 function getExportSongTags(song: RepertoireSong) {
-  return [
-    song.weddingRecommended ? "Wedding" : "",
-    song.funeralRecommended ? "Funeral" : "",
-    song.partyRecommended ? "Party" : "",
-    song.favoriteRecommended ? "Favorite" : "",
-    song.collection1970s ? "1970s" : "",
-    song.collection1980s ? "1980s" : "",
-    song.collection1990s ? "1990s" : "",
-    song.collection2000s ? "2000s" : "",
-    song.collection2010sNow ? "2010s - Now" : "",
-    song.oldies ? "Oldies" : "",
-    song.extraCharge ? "Request Fee" : "",
-  ].filter(Boolean);
+  return getSongCollections(song);
 }
 
 function createSongListExportHtml(
@@ -911,16 +906,18 @@ function createSongListExportHtml(
 
 function GenreCheckboxDropdown({
   selectedGenres,
+  options,
   isOpen,
   onOpenChange,
   onChange,
 }: {
   selectedGenres: string[];
+  options: string[];
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onChange: (genres: string[]) => void;
 }) {
-  const { standard, saved } = getGenreDropdownOptions(selectedGenres);
+  const { standard, saved } = getGenreDropdownOptions(selectedGenres, options);
   const summary = getGenreDropdownSummary(selectedGenres);
   const toggleGenre = (genre: string) => {
     const nextGenres = selectedGenres.includes(genre)
@@ -2369,6 +2366,7 @@ function readTabFromHash(): AdminTab | null {
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<AdminTab>("requests");
   const [songs, setSongs] = useState<RepertoireSong[]>([]);
+  const [songTaxonomy, setSongTaxonomy] = useState<SongTaxonomy>(defaultSongTaxonomy);
   const [songsLoadedFromSupabase, setSongsLoadedFromSupabase] = useState(false);
   const [dirtySongIds, setDirtySongIds] = useState<Set<string>>(() => new Set());
   const [deletedSongIds, setDeletedSongIds] = useState<Array<string | number>>([]);
@@ -2706,6 +2704,7 @@ export function AdminDashboard() {
         song.source,
         song.genre,
         ...(Array.isArray(song.genres) ? song.genres : []),
+        ...getSongCollections(song),
         song.notes,
         song.sheetMusic,
         song.backingTrack,
@@ -2716,6 +2715,15 @@ export function AdminDashboard() {
         .includes(normalizedQuery),
     );
   }, [songQuery, songs]);
+
+  const songGenreOptions = useMemo(() => uniqueTaxonomyNames([
+    ...songTaxonomy.genres,
+    ...songs.flatMap(getSongEditorGenres),
+  ]), [songTaxonomy, songs]);
+  const customCollectionOptions = useMemo(() => uniqueTaxonomyNames([
+    ...songTaxonomy.collections,
+    ...songs.flatMap((song) => song.customCollections || []),
+  ]).filter((name) => !isBuiltInCollection(name)), [songTaxonomy, songs]);
 
   const songPageCount = Math.max(
     1,
@@ -2845,7 +2853,7 @@ export function AdminDashboard() {
       showSaved("Song list saved to Supabase.");
     } catch (error) {
       console.error("Unable to save songs to Supabase:", error);
-      showSaved("Song list could not be saved to Supabase.");
+      showSaved(error instanceof Error ? error.message : "Song list could not be saved to Supabase.");
     }
   };
 
@@ -2958,6 +2966,7 @@ export function AdminDashboard() {
         source: "",
         genre: "Pop",
         genres: ["Pop"],
+        customCollections: [],
         notes: "",
         sheetMusic: "",
         backingTrack: "",
@@ -4243,6 +4252,8 @@ export function AdminDashboard() {
               </div>
             </div>
 
+            <SongTaxonomyControls onChange={setSongTaxonomy} />
+
             {renderSongPagination()}
 
             <div className="grid gap-4">
@@ -4309,6 +4320,7 @@ export function AdminDashboard() {
                         </span>
                         <GenreCheckboxDropdown
                           selectedGenres={songGenres}
+                          options={songGenreOptions}
                           isOpen={isGenreDropdownOpen}
                           onOpenChange={(isOpen) =>
                             setOpenGenreDropdownSong(
@@ -4326,19 +4338,7 @@ export function AdminDashboard() {
                           Collections
                         </legend>
                         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                          {[
-                            ["weddingRecommended", "Wedding"],
-                            ["funeralRecommended", "Funeral"],
-                            ["partyRecommended", "Party"],
-                            ["wills_favorite", "Favorite"],
-                            ["collection1970s", "1970s"],
-                            ["collection1980s", "1980s"],
-                            ["collection1990s", "1990s"],
-                            ["collection2000s", "2000s"],
-                            ["collection2010sNow", "2010s - Now"],
-                            ["oldies", "Oldies"],
-                            ["extraCharge", "Request Fee"],
-                          ].map(([field, label]) => (
+                          {builtInSongCollections.map(({ field, label }) => (
                             <label
                               key={field}
                               className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-ivory-muted"
@@ -4360,6 +4360,15 @@ export function AdminDashboard() {
                                 }
                               />
                               {label}
+                            </label>
+                          ))}
+                          {customCollectionOptions.map((name) => (
+                            <label key={name} className="flex min-w-0 items-center gap-2 text-xs uppercase tracking-[0.14em] text-ivory-muted">
+                              <input type="checkbox" checked={(song.customCollections || []).includes(name)}
+                                onChange={(event) => updateSong(songIndex, "customCollections", event.target.checked
+                                  ? [...(song.customCollections || []), name]
+                                  : (song.customCollections || []).filter((collection) => collection !== name))} />
+                              <span className="break-words">{name}</span>
                             </label>
                           ))}
                         </div>

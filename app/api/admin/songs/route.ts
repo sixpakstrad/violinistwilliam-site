@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAdminAccess } from "@/lib/adminAuth";
+import { validateTaxonomyName } from "@/data/songTaxonomy";
 import {
   deleteSupabaseSongs,
   readSupabaseSongs,
@@ -56,6 +57,16 @@ export async function PUT(request: Request) {
         { error: "Request body must include a songs array." },
         { status: 400 },
       );
+    }
+
+    if (body.songs.some((song) =>
+      !song || typeof song !== "object" ||
+      (song.customCollections !== undefined && (
+        !Array.isArray(song.customCollections) ||
+        song.customCollections.some((name: unknown) => validateTaxonomyName(name) !== null)
+      )),
+    )) {
+      return NextResponse.json({ error: "Song collections must be a list of valid names." }, { status: 400 });
     }
 
     if (

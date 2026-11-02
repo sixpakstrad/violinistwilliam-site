@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test:song-taxonomy": "node --test scripts/song-taxonomy.test.cjs",
     "songs:import:dry": "node scripts/import-supabase-songs.mjs --dry-run",
     "songs:import": "node scripts/import-supabase-songs.mjs --apply"
   },

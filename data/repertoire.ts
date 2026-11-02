@@ -6,6 +6,7 @@ export type RepertoireSong = {
   source: string;
   genre: string;
   genres?: string[];
+  customCollections?: string[];
   notes?: string;
   sheetMusic?: string;
   backingTrack?: string;
@@ -74,7 +75,9 @@ export function normalizeRepertoireGenre(genre: string): RepertoireGenre | strin
     return "";
   }
 
-  return repertoireGenreAliasMap[trimmedGenre] || trimmedGenre;
+  return Object.prototype.hasOwnProperty.call(repertoireGenreAliasMap, trimmedGenre)
+    ? repertoireGenreAliasMap[trimmedGenre]
+    : trimmedGenre;
 }
 
 export const repertoireSongs: RepertoireSong[] = [

@@ -2,28 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Reveal } from "@/components/Reveal";
+import type { RepertoireSong } from "@/data/repertoire";
 import {
-  normalizeRepertoireGenre,
-  repertoireGenres,
-  type RepertoireSong,
-} from "@/data/repertoire";
+  defaultSongTaxonomy,
+  getCollectionFilterLabel,
+  getSongCollections,
+  uniqueTaxonomyNames,
+  type SongTaxonomy,
+} from "@/data/songTaxonomy";
 import { songRequestSettings } from "@/data/songRequestSettings";
 import { SongRequestModal } from "@/components/SongRequestModal";
 import { TipModal } from "@/components/TipModal";
 
-type GenreFilter = "All" | (typeof repertoireGenres)[number];
-type NoteFilter =
-  | "All"
-  | "Wedding"
-  | "Funeral"
-  | "Party"
-  | "Favorite"
-  | "1970s"
-  | "1980s"
-  | "1990s"
-  | "2000s"
-  | "2010s - Now"
-  | "Oldies";
 type StoredRepertoireSong = Partial<RepertoireSong> & {
   recommended?: boolean;
   wedding?: boolean;
@@ -43,19 +33,19 @@ const songsPerPageOptions: SongsPerPage[] = [25, 50, 100];
 
 function getSongGenres(song: RepertoireSong): string[] {
   const genres = Array.isArray(song.genres)
-    ? song.genres.map(normalizeRepertoireGenre).filter(Boolean)
+    ? song.genres.filter(Boolean)
     : [];
 
   return genres.length > 0
     ? genres
-    : [normalizeRepertoireGenre(song.genre)].filter(Boolean);
+    : [song.genre].filter(Boolean);
 }
 
 function normalizeSong(song: StoredRepertoireSong): RepertoireSong {
   const category = song.category || song.source || "";
   const genres = Array.isArray(song.genres)
-    ? song.genres.map(normalizeRepertoireGenre).filter(Boolean)
-    : [normalizeRepertoireGenre(song.genre || category || "Pop")].filter(Boolean);
+    ? song.genres.filter(Boolean)
+    : [song.genre || category || "Pop"].filter(Boolean);
   const isFavorite = song.wills_favorite ?? song.favoriteRecommended ?? false;
   const weddingRecommended =
     song.weddingRecommended ?? song.recommended ?? song.wedding ?? false;
@@ -72,6 +62,7 @@ function normalizeSong(song: StoredRepertoireSong): RepertoireSong {
     source: song.source || category,
     genre: genres[0] || song.genre || category || "Pop",
     genres,
+    customCollections: Array.isArray(song.customCollections) ? uniqueTaxonomyNames(song.customCollections) : [],
     notes: song.notes || "",
     sheetMusic: song.sheetMusic || "",
     backingTrack: song.backingTrack || "",
@@ -97,19 +88,7 @@ function getSongKey(song: RepertoireSong, index: number) {
 }
 
 function getSongTags(song: RepertoireSong) {
-  return [
-    song.weddingRecommended ? "Wedding" : "",
-    song.funeralRecommended ? "Funeral" : "",
-    song.partyRecommended ? "Party" : "",
-    song.favoriteRecommended ? "Favorite" : "",
-    song.collection1970s ? "1970s" : "",
-    song.collection1980s ? "1980s" : "",
-    song.collection1990s ? "1990s" : "",
-    song.collection2000s ? "2000s" : "",
-    song.collection2010sNow ? "2010s - Now" : "",
-    song.oldies ? "Oldies" : "",
-    song.extraCharge ? "Request Fee" : "",
-  ].filter(Boolean);
+  return getSongCollections(song);
 }
 
 function getPaginationItems(currentPage: number, totalPages: number) {
@@ -154,8 +133,9 @@ function getPaginationItems(currentPage: number, totalPages: number) {
 
 export function SongLibrary() {
   const [query, setQuery] = useState("");
-  const [genre, setGenre] = useState<GenreFilter>("All");
-  const [noteFilter, setNoteFilter] = useState<NoteFilter>("All");
+  const [genre, setGenre] = useState("All");
+  const [noteFilter, setNoteFilter] = useState("All");
+  const [taxonomy, setTaxonomy] = useState<SongTaxonomy>(defaultSongTaxonomy);
   const [selectedSong, setSelectedSong] = useState<RepertoireSong | null>(null);
   const [showTip, setShowTip] = useState(false);
   const [songs, setSongs] = useState<RepertoireSong[]>([]);
@@ -217,10 +197,12 @@ export function SongLibrary() {
 
         const data = (await response.json()) as {
           songs?: StoredRepertoireSong[];
+          taxonomy?: SongTaxonomy;
         };
 
         if (isMounted && Array.isArray(data.songs)) {
           setSongs(data.songs.map(normalizeSong));
+          if (data.taxonomy) setTaxonomy(data.taxonomy);
         }
       } catch (error) {
         console.error("Unable to load public songs from Supabase:", error);
@@ -234,6 +216,13 @@ export function SongLibrary() {
     };
   }, []);
 
+  const genreOptions = useMemo(() => uniqueTaxonomyNames([
+    ...taxonomy.genres, ...songs.flatMap(getSongGenres),
+  ]), [taxonomy, songs]);
+  const collectionOptions = useMemo(() => uniqueTaxonomyNames([
+    ...taxonomy.collections, ...songs.flatMap(getSongTags),
+  ]).filter((name) => name !== "Request Fee"), [taxonomy, songs]);
+
   const filteredSongs = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
@@ -244,6 +233,7 @@ export function SongLibrary() {
         song.source,
         song.genre,
         ...getSongGenres(song),
+        ...getSongTags(song),
         song.weddingRecommended ? "wedding recommended" : "",
         song.funeralRecommended ? "funeral memorial celebration of life recommended" : "",
         song.partyRecommended ? "party reception celebration upbeat recommended" : "",
@@ -264,16 +254,7 @@ export function SongLibrary() {
         genre === "All" || getSongGenres(song).includes(genre);
       const matchesNotes =
         noteFilter === "All" ||
-        (noteFilter === "Wedding" && song.weddingRecommended) ||
-        (noteFilter === "Funeral" && song.funeralRecommended) ||
-        (noteFilter === "Party" && song.partyRecommended) ||
-        (noteFilter === "Favorite" && song.favoriteRecommended) ||
-        (noteFilter === "1970s" && song.collection1970s) ||
-        (noteFilter === "1980s" && song.collection1980s) ||
-        (noteFilter === "1990s" && song.collection1990s) ||
-        (noteFilter === "2000s" && song.collection2000s) ||
-        (noteFilter === "2010s - Now" && song.collection2010sNow) ||
-        (noteFilter === "Oldies" && song.oldies);
+        getSongTags(song).includes(noteFilter);
 
       return matchesQuery && matchesGenre && matchesNotes;
     });
@@ -482,11 +463,11 @@ export function SongLibrary() {
               </span>
               <select
                 value={genre}
-                onChange={(event) => setGenre(event.target.value as GenreFilter)}
+                onChange={(event) => setGenre(event.target.value)}
                 className="min-h-12 w-full border border-ivory/10 bg-espresso/45 px-4 text-base text-ivory outline-none transition focus:border-gold/70"
               >
                 <option value="All">All genres</option>
-                {repertoireGenres.map((item) => (
+                {genreOptions.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>
@@ -496,26 +477,19 @@ export function SongLibrary() {
 
             <label className="block">
               <span className="mb-3 block text-xs uppercase tracking-[0.22em] text-gold/80">
-                Category
+                Collection
               </span>
               <select
                 value={noteFilter}
                 onChange={(event) =>
-                  setNoteFilter(event.target.value as NoteFilter)
+                  setNoteFilter(event.target.value)
                 }
                 className="min-h-12 w-full border border-ivory/10 bg-espresso/45 px-4 text-base text-ivory outline-none transition focus:border-gold/70"
               >
                 <option value="All">All songs</option>
-                <option value="Wedding">Wedding recommended</option>
-                <option value="Funeral">Funeral recommended</option>
-                <option value="Party">Party recommended</option>
-                <option value="Favorite">Will&apos;s Favorites</option>
-                <option value="1970s">1970s</option>
-                <option value="1980s">1980s</option>
-                <option value="1990s">1990s</option>
-                <option value="2000s">2000s</option>
-                <option value="2010s - Now">2010s - Now</option>
-                <option value="Oldies">Oldies</option>
+                {collectionOptions.map((name) => (
+                  <option key={name} value={name}>{getCollectionFilterLabel(name)}</option>
+                ))}
               </select>
             </label>
           </div>

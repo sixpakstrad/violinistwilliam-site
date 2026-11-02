@@ -42,6 +42,7 @@ import {
   defaultSongTaxonomy,
   getSongCollections,
   sortTaxonomyNames,
+  sortSongCollections,
   uniqueTaxonomyNames,
   type SongTaxonomy,
 } from "@/data/songTaxonomy";
@@ -2720,7 +2721,7 @@ export function AdminDashboard() {
     ...songTaxonomy.genres,
     ...songs.flatMap(getSongEditorGenres),
   ]), [songTaxonomy, songs]);
-  const songCollectionOptions = useMemo(() => sortTaxonomyNames([
+  const songCollectionOptions = useMemo(() => sortSongCollections([
     ...songTaxonomy.collections,
     ...songs.flatMap((song) => song.customCollections || []),
   ]), [songTaxonomy, songs]);

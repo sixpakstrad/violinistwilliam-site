@@ -31,9 +31,18 @@ const taxonomyNameCollator = new Intl.Collator("en", {
   sensitivity: "base",
 });
 
+const collectionPriority = new Map([
+  ["favorite", 0],
+  ["wedding", 1],
+  ["party", 2],
+  ["oldies", 3],
+  ["funeral", 4],
+  ["request fee", 5],
+]);
+
 export const defaultSongTaxonomy: SongTaxonomy = {
   genres: sortTaxonomyNames(repertoireGenres),
-  collections: sortTaxonomyNames(builtInSongCollections.map(({ label }) => label)),
+  collections: sortSongCollections(builtInSongCollections.map(({ label }) => label)),
   configured: false,
 };
 
@@ -53,6 +62,19 @@ export function uniqueTaxonomyNames(names: readonly string[]) {
 
 export function sortTaxonomyNames(names: readonly string[]) {
   return uniqueTaxonomyNames(names).sort(taxonomyNameCollator.compare);
+}
+
+export function sortSongCollections(names: readonly string[]) {
+  return uniqueTaxonomyNames(names).sort((first, second) => {
+    const firstPriority = collectionPriority.get(taxonomyNameKey(first)) ?? collectionPriority.size;
+    const secondPriority = collectionPriority.get(taxonomyNameKey(second)) ?? collectionPriority.size;
+    if (firstPriority !== secondPriority) return firstPriority - secondPriority;
+
+    const firstIsNumbered = /^\d/.test(first);
+    const secondIsNumbered = /^\d/.test(second);
+    if (firstIsNumbered !== secondIsNumbered) return firstIsNumbered ? 1 : -1;
+    return taxonomyNameCollator.compare(first, second);
+  });
 }
 
 export function validateTaxonomyName(value: unknown) {
@@ -88,7 +110,7 @@ export function getSongCollections(song: RepertoireSong) {
       ? song.wills_favorite ?? song.favoriteRecommended
       : Boolean(song[field]),
   ).map(({ label }) => label);
-  return uniqueTaxonomyNames([...builtIn, ...(song.customCollections || [])]);
+  return sortSongCollections([...builtIn, ...(song.customCollections || [])]);
 }
 
 export function isBuiltInCollection(name: string) {

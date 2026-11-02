@@ -8,6 +8,7 @@ import {
   getCollectionFilterLabel,
   getSongCollections,
   sortTaxonomyNames,
+  sortSongCollections,
   uniqueTaxonomyNames,
   type SongTaxonomy,
 } from "@/data/songTaxonomy";
@@ -220,7 +221,7 @@ export function SongLibrary() {
   const genreOptions = useMemo(() => sortTaxonomyNames([
     ...taxonomy.genres, ...songs.flatMap(getSongGenres),
   ]), [taxonomy, songs]);
-  const collectionOptions = useMemo(() => sortTaxonomyNames([
+  const collectionOptions = useMemo(() => sortSongCollections([
     ...taxonomy.collections, ...songs.flatMap(getSongTags),
   ]).filter((name) => name !== "Request Fee"), [taxonomy, songs]);
 

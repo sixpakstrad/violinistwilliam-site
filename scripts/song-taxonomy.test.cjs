@@ -85,6 +85,17 @@ test("available names sort alphabetically with natural decade order without chan
   assert.deepEqual(taxonomyData.normalizeSongGenres(["Pop", "Classical"]), ["Pop", "Classical"]);
 });
 
+test("collections use the requested priority order and put numbered collections last", () => {
+  const names = ["1980s", "Funeral", "Wedding", "1960s", "Request Fee", "Oldies", "Party", "Favorite", "1990s", "2010s - Now", "2000s", "1970s", "Celebrations", "Acoustic", "favorite"];
+  const preferred = ["Favorite", "Wedding", "Party", "Oldies", "Funeral", "Request Fee"];
+  const decades = ["1960s", "1970s", "1980s", "1990s", "2000s", "2010s - Now"];
+  assert.deepEqual(taxonomyData.sortSongCollections(names), [...preferred, "Acoustic", "Celebrations", ...decades]);
+  assert.deepEqual(taxonomyData.defaultSongTaxonomy.collections.slice(0, 6), preferred);
+  const song = songs.mapSupabaseSongToRepertoireSong(baseRow);
+  assert.deepEqual(taxonomyData.getSongCollections(song), [...preferred, ...decades]);
+  assert.deepEqual(song.customCollections, ["1960s"]);
+});
+
 test("missing setup keeps existing songs readable and rejects taxonomy creation without a write", async () => {
   const calls = [];
   global.fetch = async (url, options) => {

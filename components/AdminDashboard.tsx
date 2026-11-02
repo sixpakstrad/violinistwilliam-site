@@ -41,7 +41,7 @@ import {
   builtInSongCollections,
   defaultSongTaxonomy,
   getSongCollections,
-  isBuiltInCollection,
+  sortTaxonomyNames,
   uniqueTaxonomyNames,
   type SongTaxonomy,
 } from "@/data/songTaxonomy";
@@ -2716,14 +2716,14 @@ export function AdminDashboard() {
     );
   }, [songQuery, songs]);
 
-  const songGenreOptions = useMemo(() => uniqueTaxonomyNames([
+  const songGenreOptions = useMemo(() => sortTaxonomyNames([
     ...songTaxonomy.genres,
     ...songs.flatMap(getSongEditorGenres),
   ]), [songTaxonomy, songs]);
-  const customCollectionOptions = useMemo(() => uniqueTaxonomyNames([
+  const songCollectionOptions = useMemo(() => sortTaxonomyNames([
     ...songTaxonomy.collections,
     ...songs.flatMap((song) => song.customCollections || []),
-  ]).filter((name) => !isBuiltInCollection(name)), [songTaxonomy, songs]);
+  ]), [songTaxonomy, songs]);
 
   const songPageCount = Math.max(
     1,
@@ -4338,39 +4338,43 @@ export function AdminDashboard() {
                           Collections
                         </legend>
                         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                          {builtInSongCollections.map(({ field, label }) => (
-                            <label
-                              key={field}
-                              className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-ivory-muted"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={Boolean(
-                                  field === "wills_favorite"
-                                    ? song.wills_favorite ??
-                                        song.favoriteRecommended
-                                    : song[field as keyof RepertoireSong],
-                                )}
-                                onChange={(event) =>
-                                  updateSong(
-                                    songIndex,
-                                    field as keyof RepertoireSong,
-                                    event.target.checked,
-                                  )
-                                }
-                              />
-                              {label}
-                            </label>
-                          ))}
-                          {customCollectionOptions.map((name) => (
-                            <label key={name} className="flex min-w-0 items-center gap-2 text-xs uppercase tracking-[0.14em] text-ivory-muted">
-                              <input type="checkbox" checked={(song.customCollections || []).includes(name)}
-                                onChange={(event) => updateSong(songIndex, "customCollections", event.target.checked
-                                  ? [...(song.customCollections || []), name]
-                                  : (song.customCollections || []).filter((collection) => collection !== name))} />
-                              <span className="break-words">{name}</span>
-                            </label>
-                          ))}
+                          {songCollectionOptions.map((name) => {
+                            const field = builtInSongCollections.find(
+                              ({ label }) => label === name,
+                            )?.field;
+                            const customCollections = song.customCollections || [];
+                            return (
+                              <label
+                                key={name}
+                                className="flex min-w-0 items-center gap-2 text-xs uppercase tracking-[0.14em] text-ivory-muted"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(
+                                    field
+                                      ? field === "wills_favorite"
+                                        ? song.wills_favorite ?? song.favoriteRecommended
+                                        : song[field]
+                                      : customCollections.includes(name),
+                                  )}
+                                  onChange={(event) => {
+                                    if (field) {
+                                      updateSong(songIndex, field, event.target.checked);
+                                    } else {
+                                      updateSong(
+                                        songIndex,
+                                        "customCollections",
+                                        event.target.checked
+                                          ? [...customCollections, name]
+                                          : customCollections.filter((collection) => collection !== name),
+                                      );
+                                    }
+                                  }}
+                                />
+                                <span className="break-words">{name}</span>
+                              </label>
+                            );
+                          })}
                         </div>
                       </fieldset>
 

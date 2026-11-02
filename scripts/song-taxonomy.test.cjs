@@ -77,6 +77,14 @@ test("taxonomy validation rejects blank, oversized, reserved, and control-charac
   assert.deepEqual(taxonomyData.normalizeCustomCollections([" 1960S ", "1960s"], ["1960s"]), ["1960s"]);
 });
 
+test("available names sort alphabetically with natural decade order without changing assignments", () => {
+  const names = ["Wedding", "1980s", "1960s", "Funeral", "1970s", "1960S", "Oldies"];
+  assert.deepEqual(taxonomyData.sortTaxonomyNames(names), ["1960s", "1970s", "1980s", "Funeral", "Oldies", "Wedding"]);
+  assert.deepEqual(names, ["Wedding", "1980s", "1960s", "Funeral", "1970s", "1960S", "Oldies"]);
+  assert.deepEqual(taxonomyData.sortTaxonomyNames(["Pop", "Jazz", "Bluegrass"]), ["Bluegrass", "Jazz", "Pop"]);
+  assert.deepEqual(taxonomyData.normalizeSongGenres(["Pop", "Classical"]), ["Pop", "Classical"]);
+});
+
 test("missing setup keeps existing songs readable and rejects taxonomy creation without a write", async () => {
   const calls = [];
   global.fetch = async (url, options) => {

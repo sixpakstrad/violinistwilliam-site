@@ -26,9 +26,14 @@ export const builtInSongCollections = [
   { field: "extraCharge", label: "Request Fee" },
 ] as const;
 
+const taxonomyNameCollator = new Intl.Collator("en", {
+  numeric: true,
+  sensitivity: "base",
+});
+
 export const defaultSongTaxonomy: SongTaxonomy = {
-  genres: [...repertoireGenres],
-  collections: builtInSongCollections.map(({ label }) => label),
+  genres: sortTaxonomyNames(repertoireGenres),
+  collections: sortTaxonomyNames(builtInSongCollections.map(({ label }) => label)),
   configured: false,
 };
 
@@ -44,6 +49,10 @@ export function uniqueTaxonomyNames(names: readonly string[]) {
     seen.add(key);
     return true;
   });
+}
+
+export function sortTaxonomyNames(names: readonly string[]) {
+  return uniqueTaxonomyNames(names).sort(taxonomyNameCollator.compare);
 }
 
 export function validateTaxonomyName(value: unknown) {

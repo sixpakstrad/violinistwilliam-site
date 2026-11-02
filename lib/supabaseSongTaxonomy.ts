@@ -1,7 +1,7 @@
 import {
   defaultSongTaxonomy,
   taxonomyNameKey,
-  uniqueTaxonomyNames,
+  sortTaxonomyNames,
   validateTaxonomyName,
   type SongTaxonomy,
   type SongTaxonomyKind,
@@ -28,8 +28,8 @@ export async function readSongTaxonomy(): Promise<SongTaxonomy> {
     const names = (kind: SongTaxonomyKind) =>
       (rows || []).filter((row) => row.kind === kind).map((row) => row.name);
     return {
-      genres: uniqueTaxonomyNames([...defaultSongTaxonomy.genres, ...names("genre")]),
-      collections: uniqueTaxonomyNames([
+      genres: sortTaxonomyNames([...defaultSongTaxonomy.genres, ...names("genre")]),
+      collections: sortTaxonomyNames([
         ...defaultSongTaxonomy.collections,
         ...names("collection"),
       ]),

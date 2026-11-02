@@ -7,6 +7,7 @@ import {
   defaultSongTaxonomy,
   getCollectionFilterLabel,
   getSongCollections,
+  sortTaxonomyNames,
   uniqueTaxonomyNames,
   type SongTaxonomy,
 } from "@/data/songTaxonomy";
@@ -216,10 +217,10 @@ export function SongLibrary() {
     };
   }, []);
 
-  const genreOptions = useMemo(() => uniqueTaxonomyNames([
+  const genreOptions = useMemo(() => sortTaxonomyNames([
     ...taxonomy.genres, ...songs.flatMap(getSongGenres),
   ]), [taxonomy, songs]);
-  const collectionOptions = useMemo(() => uniqueTaxonomyNames([
+  const collectionOptions = useMemo(() => sortTaxonomyNames([
     ...taxonomy.collections, ...songs.flatMap(getSongTags),
   ]).filter((name) => name !== "Request Fee"), [taxonomy, songs]);
 

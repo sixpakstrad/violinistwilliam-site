@@ -22,6 +22,7 @@ No live database changes are performed by installing or building this code.
 
 Add Genre and Add Collection save names immediately. Assigning a name to a song still uses Save Songs.
 Adding a name does not assign any songs automatically. Names are shared across admins and visitors on their next page load.
+Genre and collection choices sort alphabetically, with decades in numeric order. Saved song assignments keep their existing order.
 There is no rename or delete control in this version, so song assignments cannot be orphaned by those operations.
 
 ## Access
